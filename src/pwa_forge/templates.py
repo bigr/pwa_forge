@@ -9,7 +9,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from pwa_forge.utils.logger import get_logger
 
-__all__ = ["TemplateEngine", "get_template_engine"]
+__all__ = ["TemplateEngine", "get_template_engine", "render_template"]
 
 logger = get_logger(__name__)
 
@@ -127,3 +127,17 @@ def get_template_engine() -> TemplateEngine:
     if _template_engine is None:
         _template_engine = TemplateEngine()
     return _template_engine
+
+
+def render_template(template_name: str, context: dict[str, Any]) -> str:
+    """Render a template with the given context.
+
+    Args:
+        template_name: Name of the template file.
+        context: Template variables.
+
+    Returns:
+        Rendered template content.
+    """
+    engine = get_template_engine()
+    return engine.render_template(template_name, **context)

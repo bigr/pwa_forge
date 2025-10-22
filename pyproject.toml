@@ -92,6 +92,8 @@ disallow_any_generics = true
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 addopts = "-q --cov=pwa_forge --cov-report=term-missing"
