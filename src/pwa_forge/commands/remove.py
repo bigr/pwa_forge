@@ -92,12 +92,15 @@ def remove_app(
             manifest_path.unlink()
             logger.info(f"Removed manifest: {manifest_path}")
 
-            # Try to remove parent directory if empty
-            try:
-                manifest_path.parent.rmdir()
-                logger.info(f"Removed empty directory: {manifest_path.parent}")
-            except OSError:
-                pass  # Directory not empty
+            # Try to remove parent directory if empty and not the profile directory
+            # Only remove if we're also removing the profile or if they're different
+            manifest_parent = manifest_path.parent
+            if remove_profile or (profile_path and manifest_parent != profile_path):
+                try:
+                    manifest_parent.rmdir()
+                    logger.info(f"Removed empty directory: {manifest_parent}")
+                except OSError:
+                    pass  # Directory not empty or doesn't exist
         else:
             logger.info(f"[DRY-RUN] Would remove manifest: {manifest_path}")
 
