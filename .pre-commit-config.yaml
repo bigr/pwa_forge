@@ -15,7 +15,7 @@ repos:
     rev: v1.10.0
     hooks:
       - id: mypy
-        exclude: ^tests/playwright/
+        exclude: ^tests/(playwright|integration)/
         additional_dependencies:
           - click>=8.1
           - jinja2>=3.1
