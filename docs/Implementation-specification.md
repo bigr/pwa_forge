@@ -1000,7 +1000,27 @@ The following must work reliably:
   - [ ] CRUD operations
   - [ ] Locking for concurrent access
 
-### Phase 3: URL Handler System
+### Phase 3: Browser Integration Test Framework
+- [ ] Tooling setup
+  - [ ] Add Playwright to project dependencies (`optional-dev` extra)
+  - [ ] Provide `tox` environment for Playwright tests (headless only)
+  - [ ] Document local browser driver requirements and installation steps
+  - [ ] Optional: scaffold `npm` workspace with Jest + jsdom for fast JS unit tests (userscript helpers)
+- [ ] Test harness
+  - [ ] Create fixtures to spin up temporary test PWAs (wrapper, desktop file, userscript)
+  - [ ] Implement utilities for launching Playwright in headless mode with injected userscript
+  - [ ] Capture logs and screenshots on failure for CI artifacts
+- [ ] Core scenarios
+  - [ ] External link rewrite: confirm `userscript.j2` rewrites links to custom scheme
+  - [ ] Window opening: ensure `window.open` calls use custom scheme
+  - [ ] Handler integration: verify handler script receives decoded URL and launches browser stub
+- [ ] CI integration
+  - [ ] Run Playwright smoke suite in GitHub Actions (Linux, Chromium)
+  - [ ] Allow opt-out via env flag for contributors without browsers installed
+  - [ ] Publish HTML reports as build artifacts
+  - [ ] Optional: run Jest unit suite in Node.js workflow for rapid feedback
+
+### Phase 4: URL Handler System
 - [ ] `generate-handler` command
   - [ ] Template rendering
   - [ ] URL decoding logic
@@ -1015,7 +1035,7 @@ The following must work reliably:
   - [ ] In-scope host configuration
   - [ ] Instructions for manual installation
 
-### Phase 4: Validation & Audit
+### Phase 5: Validation & Audit
 - [ ] `audit` command implementation
   - [ ] File existence checks
   - [ ] Desktop file validation
@@ -1032,7 +1052,7 @@ The following must work reliably:
   - [ ] Validate YAML after edit
   - [ ] Offer to sync
 
-### Phase 5: Testing & Polish
+### Phase 6: Testing & Polish
 - [ ] Unit tests
   - [ ] Template rendering tests
   - [ ] Configuration loading tests
@@ -1055,7 +1075,7 @@ The following must work reliably:
   - [ ] Code formatting with black
   - [ ] 70%+ test coverage
 
-### Phase 6: Release Preparation
+### Phase 7: Release Preparation
 - [ ] Package for PyPI
   - [ ] setup.py configuration
   - [ ] version management
