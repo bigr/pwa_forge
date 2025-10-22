@@ -17,7 +17,7 @@ def test_version_has_semver_shape() -> None:
 def test_cli_version_command_emits_package_version() -> None:
     """Verify `pwa-forge version` matches the package `__version__`."""
     runner = CliRunner()
-    result = runner.invoke(cli, ["version"])  # type: ignore[arg-type]
+    result = runner.invoke(cli, ["version"])
 
     assert result.exit_code == 0
     assert result.output.strip() == __version__
