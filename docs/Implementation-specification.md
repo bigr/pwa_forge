@@ -1001,10 +1001,10 @@ The following must work reliably:
   - [X] Locking for concurrent access
 
 ### Phase 3: Browser Integration Test Framework
-- [ ] Tooling setup
+- [X] Tooling setup
   - [X] Add Playwright to project dependencies (`optional-dev` extra)
   - [X] Provide `tox` environment for Playwright tests (headless only)
-  - [ ] Document local browser driver requirements and installation steps
+  - [X] Document local browser driver requirements and installation steps
   - [ ] Optional: scaffold `npm` workspace with Jest + jsdom for fast JS unit tests (userscript helpers)
 - [X] Test harness
   - [X] Create fixtures to spin up temporary test PWAs (wrapper, desktop file, userscript)
@@ -1014,10 +1014,10 @@ The following must work reliably:
   - [X] External link rewrite: confirm `userscript.j2` rewrites links to custom scheme
   - [X] Window opening: ensure `window.open` calls use custom scheme
   - [X] Handler integration: verify handler script receives decoded URL and launches browser stub
-- [ ] CI integration
-  - [ ] Run Playwright smoke suite in GitHub Actions (Linux, Chromium)
-  - [ ] Allow opt-out via env flag for contributors without browsers installed
-  - [ ] Publish HTML reports as build artifacts
+- [X] CI integration
+  - [X] Run Playwright smoke suite in GitHub Actions (Linux, Chromium)
+  - [X] Allow opt-out via env flag for contributors without browsers installed
+  - [X] Publish HTML reports as build artifacts
   - [ ] Optional: run Jest unit suite in Node.js workflow for rapid feedback
 
 ### Phase 4: URL Handler System
