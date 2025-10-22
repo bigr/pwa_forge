@@ -37,6 +37,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "build>=1.2",
+  "mypy>=1.10",
+  "pre-commit>=3.8",
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
   "types-PyYAML>=6.0.12.20240917",
   "types-requests>=2.31.0.10",
 ]
@@ -59,3 +64,44 @@ where = ["src"]
 [tool.setuptools.package-data]
 pwa_forge = ["py.typed"]
 
+[tool.ruff]
+line-length = 120
+preview = true
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "D"]
+ignore=["D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["pwa_forge"]
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_return_any = true
+no_implicit_optional = true
+allow_redefinition = false
+disallow_any_generics = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=pwa_forge --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["pwa_forge"]
+
+[tool.coverage.report]
+omit = ["tests/*"]
+show_missing = true
+skip_empty = true

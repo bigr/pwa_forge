@@ -9,14 +9,14 @@ from pwa_forge.cli import cli
 
 
 def test_version_has_semver_shape() -> None:
-    """The package version should follow a basic MAJOR.MINOR.PATCH shape."""
+    """Ensure `__version__` follows a `MAJOR.MINOR.PATCH` pattern."""
     parts = __version__.split(".")
     assert len(parts) == 3
     assert all(part.isdigit() for part in parts)
 
 
 def test_cli_version_command_emits_package_version() -> None:
-    """Running `pwa-forge version` should show the same version as the package."""
+    """Verify `pwa-forge version` matches the package `__version__`."""
     runner = CliRunner()
     result = runner.invoke(cli, ["version"])  # type: ignore[arg-type]
 

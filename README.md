@@ -97,6 +97,14 @@ ruff check pwa_forge tests
 mypy pwa_forge
 ```
 
+Install and run pre-commit hooks:
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
 ## Documentation & Roadmap
 
 - Specs and deep dives live in `docs/`
