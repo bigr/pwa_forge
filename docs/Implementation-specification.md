@@ -980,21 +980,21 @@ The following must work reliably:
 - [X] Path utilities
 
 ### Phase 2: Basic PWA Management
-- [ ] `add` command implementation
+- [X] `add` command implementation
   - [X] URL validation
-  - [ ] Profile directory creation
-  - [ ] Wrapper script generation
-  - [ ] Desktop file generation
-  - [ ] Icon handling (copy from path)
+  - [X] Profile directory creation
+  - [X] Wrapper script generation
+  - [X] Desktop file generation
+  - [X] Icon handling (copy from path)
   - [X] Registry entry creation
-- [ ] `list` command implementation
-  - [ ] Table format output
-  - [ ] JSON/YAML format support
-  - [ ] Verbose mode
-- [ ] `remove` command implementation
-  - [ ] Safe file deletion
-  - [ ] Profile cleanup option
-  - [ ] Registry update
+- [X] `list` command implementation
+  - [X] Table format output
+  - [X] JSON/YAML format support
+  - [X] Verbose mode
+- [X] `remove` command implementation
+  - [X] Safe file deletion
+  - [X] Profile cleanup option
+  - [X] Registry update
 - [X] Registry management
   - [X] JSON-based index
   - [X] CRUD operations

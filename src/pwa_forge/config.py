@@ -67,6 +67,36 @@ class Config:
     log_level: str = "info"
     log_file: Path = field(default_factory=lambda: get_app_data_dir() / "pwa-forge.log")
 
+    @property
+    def desktop_dir(self) -> Path:
+        """Get desktop directory path."""
+        return self.directories.desktop
+
+    @property
+    def icons_dir(self) -> Path:
+        """Get icons directory path."""
+        return self.directories.icons
+
+    @property
+    def wrappers_dir(self) -> Path:
+        """Get wrappers directory path."""
+        return self.directories.wrappers
+
+    @property
+    def apps_dir(self) -> Path:
+        """Get apps directory path."""
+        return self.directories.apps
+
+    @property
+    def userscripts_dir(self) -> Path:
+        """Get userscripts directory path."""
+        return self.directories.userscripts
+
+    @property
+    def registry_file(self) -> Path:
+        """Get registry file path."""
+        return get_app_data_dir() / "registry.json"
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Config:
         """Create Config from a dictionary.

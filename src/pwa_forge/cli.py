@@ -7,6 +7,10 @@ import logging
 
 import click
 
+from pwa_forge.commands.add import AddCommandError, add_app
+from pwa_forge.commands.list_apps import list_apps as list_apps_impl
+from pwa_forge.commands.remove import RemoveCommandError
+from pwa_forge.commands.remove import remove_app as remove_app_impl
 from pwa_forge.config import load_config
 from pwa_forge.utils.logger import setup_logging
 
@@ -108,7 +112,42 @@ def add(
     Example:
         pwa-forge add https://chat.openai.com --name ChatGPT
     """
-    click.echo("Add command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = add_app(
+            url=url,
+            config=config,
+            name=name,
+            app_id=app_id,
+            browser=browser,
+            profile=profile,
+            icon=icon,
+            out_of_scope=out_of_scope,
+            inject_userscript=inject_userscript,
+            wm_class=wm_class,
+            chrome_flags=chrome_flags,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ PWA created successfully!", fg="green")
+        else:
+            click.echo("✓ PWA created successfully!")
+
+        click.echo(f"  ID: {result['id']}")
+        click.echo(f"  Name: {result['name']}")
+        click.echo(f"  URL: {result['url']}")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except AddCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @cli.command(name="list")
@@ -122,7 +161,8 @@ def add(
 @click.pass_context
 def list_apps(ctx: click.Context, verbose: bool, format: str) -> None:  # noqa: A002
     """List all managed PWA instances."""
-    click.echo("List command - Not yet implemented")
+    config = ctx.obj["config"]
+    list_apps_impl(config, verbose=verbose, output_format=format)
 
 
 @cli.command()
@@ -147,7 +187,32 @@ def remove(
     Example:
         pwa-forge remove chatgpt
     """
-    click.echo("Remove command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        remove_app_impl(
+            app_id=id,
+            config=config,
+            remove_profile=remove_profile,
+            remove_icon=remove_icon,
+            keep_userdata=keep_userdata,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✓ PWA removed successfully: {id}", fg="green")
+        else:
+            click.echo(f"✓ PWA removed successfully: {id}")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except RemoveCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @cli.command()
