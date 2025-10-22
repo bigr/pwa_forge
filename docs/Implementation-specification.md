@@ -1006,14 +1006,14 @@ The following must work reliably:
   - [X] Provide `tox` environment for Playwright tests (headless only)
   - [ ] Document local browser driver requirements and installation steps
   - [ ] Optional: scaffold `npm` workspace with Jest + jsdom for fast JS unit tests (userscript helpers)
-- [ ] Test harness
-  - [ ] Create fixtures to spin up temporary test PWAs (wrapper, desktop file, userscript)
-  - [ ] Implement utilities for launching Playwright in headless mode with injected userscript
-  - [ ] Capture logs and screenshots on failure for CI artifacts
-- [ ] Core scenarios
-  - [ ] External link rewrite: confirm `userscript.j2` rewrites links to custom scheme
-  - [ ] Window opening: ensure `window.open` calls use custom scheme
-  - [ ] Handler integration: verify handler script receives decoded URL and launches browser stub
+- [X] Test harness
+  - [X] Create fixtures to spin up temporary test PWAs (wrapper, desktop file, userscript)
+  - [X] Implement utilities for launching Playwright in headless mode with injected userscript
+  - [X] Capture logs and screenshots on failure for CI artifacts
+- [X] Core scenarios
+  - [X] External link rewrite: confirm `userscript.j2` rewrites links to custom scheme
+  - [X] Window opening: ensure `window.open` calls use custom scheme
+  - [X] Handler integration: verify handler script receives decoded URL and launches browser stub
 - [ ] CI integration
   - [ ] Run Playwright smoke suite in GitHub Actions (Linux, Chromium)
   - [ ] Allow opt-out via env flag for contributors without browsers installed
