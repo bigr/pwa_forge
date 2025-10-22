@@ -971,7 +971,7 @@ The following must work reliably:
 
 ## Implementation Phases
 
-### Phase 1: Core Infrastructure (Week 1)
+### Phase 1: Core Infrastructure
 - [ ] Project scaffolding and package structure
 - [ ] CLI framework (Click) with basic commands
 - [ ] Configuration system (YAML loading)
@@ -979,7 +979,7 @@ The following must work reliably:
 - [ ] Logging setup
 - [ ] Path utilities
 
-### Phase 2: Basic PWA Management (Week 1-2)
+### Phase 2: Basic PWA Management
 - [ ] `add` command implementation
   - [ ] URL validation
   - [ ] Profile directory creation
@@ -1000,7 +1000,7 @@ The following must work reliably:
   - [ ] CRUD operations
   - [ ] Locking for concurrent access
 
-### Phase 3: URL Handler System (Week 2)
+### Phase 3: URL Handler System
 - [ ] `generate-handler` command
   - [ ] Template rendering
   - [ ] URL decoding logic
@@ -1015,7 +1015,7 @@ The following must work reliably:
   - [ ] In-scope host configuration
   - [ ] Instructions for manual installation
 
-### Phase 4: Validation & Audit (Week 3)
+### Phase 4: Validation & Audit
 - [ ] `audit` command implementation
   - [ ] File existence checks
   - [ ] Desktop file validation
@@ -1032,7 +1032,7 @@ The following must work reliably:
   - [ ] Validate YAML after edit
   - [ ] Offer to sync
 
-### Phase 5: Testing & Polish (Week 3-4)
+### Phase 5: Testing & Polish
 - [ ] Unit tests
   - [ ] Template rendering tests
   - [ ] Configuration loading tests
@@ -1055,7 +1055,7 @@ The following must work reliably:
   - [ ] Code formatting with black
   - [ ] 70%+ test coverage
 
-### Phase 6: Release Preparation (Week 4)
+### Phase 6: Release Preparation
 - [ ] Package for PyPI
   - [ ] setup.py configuration
   - [ ] version management
