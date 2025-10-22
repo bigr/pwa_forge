@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=70.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pwa-forge"
+version = "0.1.0"
+description = "Manage Progressive Web Apps as native-feeling Linux launchers."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Pavel Klinger", email = "ja@bigr.cz" },
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Desktop Environment",
+  "Topic :: Utilities",
+]
+dependencies = [
+  "click>=8.1",
+  "jinja2>=3.1",
+  "platformdirs>=3.0",
+  "pyyaml>=6.0",
+  "requests>=2.28",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "mypy>=1.10",
+  "pre-commit>=3.8",
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
+  "types-PyYAML>=6.0.12.20240917",
+  "types-requests>=2.31.0.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/bigr/pwa_forge"
+Documentation = "https://github.com/bigr/pwa_forge/tree/main/docs"
+Source = "https://github.com/bigr/pwa_forge"
+Issues = "https://github.com/bigr/pwa_forge/issues"
+
+[project.scripts]
+pwa-forge = "pwa_forge.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pwa_forge = ["py.typed"]
+
+[tool.ruff]
+line-length = 120
+preview = true
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "D"]
+ignore=["D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["pwa_forge"]
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_return_any = true
+no_implicit_optional = true
+allow_redefinition = false
+disallow_any_generics = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=pwa_forge --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["pwa_forge"]
+
+[tool.coverage.report]
+omit = ["tests/*"]
+show_missing = true
+skip_empty = true
