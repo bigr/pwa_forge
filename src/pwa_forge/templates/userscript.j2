@@ -1,0 +1,99 @@
+// ==UserScript==
+// @name         PWA Forge External Link Handler
+// @namespace    pwa-forge
+// @version      1.0
+// @description  Redirects external links to custom URL scheme
+// @match        {{ url_pattern }}
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+  'use strict';
+
+  const IN_SCOPE_HOSTS = {{ in_scope_hosts | tojson }};
+  const SCHEME = '{{ scheme }}';
+
+  function isExternal(url) {
+    try {
+      const u = new URL(url, location.href);
+      return !IN_SCOPE_HOSTS.includes(u.host);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function rewriteClicks(e) {
+    if (e.defaultPrevented) return;
+    if (e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    let a = e.target.closest('a[href]');
+    if (!a) return;
+
+    const href = a.getAttribute('href');
+    if (!href) return;
+    if (href.startsWith('mailto:') || href.startsWith('tel:')) return;
+
+    if (isExternal(href)) {
+      const targetUrl = new URL(href, location.href).toString();
+      const encoded = encodeURIComponent(targetUrl);
+      const newHref = SCHEME + ':' + encoded;
+
+      e.preventDefault();
+      setTimeout(() => { location.href = newHref; }, 0);
+    }
+  }
+
+  function rewriteAnchors(root = document) {
+    root.querySelectorAll('a[href]').forEach(a => {
+      try {
+        const href = a.getAttribute('href');
+        if (!href) return;
+        if (href.startsWith('mailto:') || href.startsWith('tel:')) return;
+
+        if (isExternal(href)) {
+          const targetUrl = new URL(href, location.href).toString();
+          a.setAttribute('href', SCHEME + ':' + encodeURIComponent(targetUrl));
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+        }
+      } catch (e) {}
+    });
+  }
+
+  const originalOpen = window.open;
+  function patchedOpen(url, name, specs) {
+    try {
+      if (typeof url === 'string' && isExternal(url)) {
+        const encoded = encodeURIComponent(new URL(url, location.href).toString());
+        return originalOpen.call(window, SCHEME + ':' + encoded, name, specs);
+      }
+    } catch (e) {}
+    return originalOpen.apply(window, arguments);
+  }
+
+  Object.defineProperty(window, 'open', {
+    configurable: true,
+    writable: true,
+    value: patchedOpen
+  });
+
+  document.addEventListener('click', rewriteClicks, {capture: true});
+
+  const observer = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      if (m.addedNodes) {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            rewriteAnchors(node);
+          }
+        });
+      }
+    }
+  });
+
+  observer.observe(document, {childList: true, subtree: true});
+
+  window.addEventListener('load', () => rewriteAnchors());
+})();

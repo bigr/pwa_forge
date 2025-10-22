@@ -62,7 +62,7 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-pwa_forge = ["py.typed"]
+pwa_forge = ["py.typed", "templates/*.j2"]
 
 [tool.ruff]
 line-length = 120

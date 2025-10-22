@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Open in {{ browser | title }} ({{ scheme }} handler)
+Comment=Handle {{ scheme }}:// URLs
+Exec={{ handler_script }} %u
+Terminal=false
+MimeType=x-scheme-handler/{{ scheme }};
+{% if icon -%}
+Icon={{ icon }}
+{% else -%}
+Icon=web-browser
+{% endif -%}
+Categories=Network;
+NoDisplay=true
