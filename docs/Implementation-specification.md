@@ -1002,8 +1002,8 @@ The following must work reliably:
 
 ### Phase 3: Browser Integration Test Framework
 - [ ] Tooling setup
-  - [ ] Add Playwright to project dependencies (`optional-dev` extra)
-  - [ ] Provide `tox` environment for Playwright tests (headless only)
+  - [X] Add Playwright to project dependencies (`optional-dev` extra)
+  - [X] Provide `tox` environment for Playwright tests (headless only)
   - [ ] Document local browser driver requirements and installation steps
   - [ ] Optional: scaffold `npm` workspace with Jest + jsdom for fast JS unit tests (userscript helpers)
 - [ ] Test harness
