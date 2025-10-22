@@ -91,10 +91,24 @@ pip install -e .
 Run tests and checks:
 
 ```bash
-pytest
-pytest --cov=pwa_forge
-ruff check pwa_forge tests
-mypy pwa_forge
+# Recommended: Use Make targets for convenience
+make help           # Show all available targets
+make test           # Run unit tests with coverage
+make test-playwright # Run Playwright browser tests
+make ci-local       # Simulate CI locally (recommended before push!)
+
+# Or run pytest directly
+pytest -m "not playwright"  # Unit tests only
+pytest --cov=pwa_forge -m "not playwright"  # With coverage
+
+# Playwright browser integration tests (requires installation)
+pip install .[playwright]
+python -m playwright install chromium
+pytest tests/playwright -v
+
+# Linting and type checking
+ruff check src tests
+mypy src
 ```
 
 Install and run pre-commit hooks:
@@ -104,6 +118,8 @@ pip install pre-commit
 pre-commit install
 pre-commit run --all-files
 ```
+
+See `docs/TESTING.md` for comprehensive testing documentation.
 
 ## Documentation & Roadmap
 
