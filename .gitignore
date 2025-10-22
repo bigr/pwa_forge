@@ -48,6 +48,10 @@ coverage.xml
 *.cover
 *.py.cover
 .hypothesis/
+
+# PyCharm
+.idea/
+
 .pytest_cache/
 cover/
 
