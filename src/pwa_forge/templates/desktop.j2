@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name={{ name }}
+{% if comment -%}
+Comment={{ comment }}
+{% else -%}
+Comment={{ name }} PWA
+{% endif -%}
+Exec={{ wrapper_path }} %U
+Icon={{ icon_path }}
+Terminal=false
+Categories={{ categories | join(';') }};
+StartupWMClass={{ wm_class }}
+X-DBUS-StartupNotify=false
