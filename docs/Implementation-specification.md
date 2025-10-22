@@ -1021,19 +1021,19 @@ The following must work reliably:
   - [ ] Optional: run Jest unit suite in Node.js workflow for rapid feedback
 
 ### Phase 4: URL Handler System
-- [ ] `generate-handler` command
-  - [ ] Template rendering
-  - [ ] URL decoding logic
-  - [ ] Security validation
-  - [ ] Multiple browser support
-- [ ] `install-handler` command
-  - [ ] Desktop file creation for handler
-  - [ ] XDG mime registration
-  - [ ] Verification of registration
-- [ ] `generate-userscript` command
-  - [ ] Template with configurable scheme
-  - [ ] In-scope host configuration
-  - [ ] Instructions for manual installation
+- [X] `generate-handler` command
+  - [X] Template rendering
+  - [X] URL decoding logic
+  - [X] Security validation
+  - [X] Multiple browser support
+- [X] `install-handler` command
+  - [X] Desktop file creation for handler
+  - [X] XDG mime registration
+  - [X] Verification of registration
+- [X] `generate-userscript` command
+  - [X] Template with configurable scheme
+  - [X] In-scope host configuration
+  - [X] Instructions for manual installation
 
 ### Phase 5: Validation & Audit
 - [ ] `audit` command implementation
