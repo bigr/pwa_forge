@@ -8,9 +8,24 @@ import logging
 import click
 
 from pwa_forge.commands.add import AddCommandError, add_app
+from pwa_forge.commands.handler import (
+    HandlerCommandError,
+)
+from pwa_forge.commands.handler import (
+    generate_handler as generate_handler_impl,
+)
+from pwa_forge.commands.handler import (
+    install_handler as install_handler_impl,
+)
 from pwa_forge.commands.list_apps import list_apps as list_apps_impl
 from pwa_forge.commands.remove import RemoveCommandError
 from pwa_forge.commands.remove import remove_app as remove_app_impl
+from pwa_forge.commands.userscript import (
+    UserscriptCommandError,
+)
+from pwa_forge.commands.userscript import (
+    generate_userscript as generate_userscript_impl,
+)
 from pwa_forge.config import load_config
 from pwa_forge.utils.logger import setup_logging
 
@@ -281,6 +296,174 @@ def config_list() -> None:
 def config_reset() -> None:
     """Reset configuration to defaults."""
     click.echo("Config reset command - Not yet implemented")
+
+
+# URL Handler System Commands
+@cli.command()
+@click.option("--scheme", required=True, help="URL scheme to handle (e.g., 'ff' for ff:// URLs)")
+@click.option(
+    "--browser",
+    type=click.Choice(["firefox", "chrome", "chromium", "edge"]),
+    default="firefox",
+    help="Browser to open URLs in",
+)
+@click.option("--out", type=click.Path(), help="Output path for handler script")
+@click.option("--dry-run", is_flag=True, help="Show what would be created")
+@click.pass_context
+def generate_handler(
+    ctx: click.Context,
+    scheme: str,
+    browser: str,
+    out: str | None,
+    dry_run: bool,
+) -> None:
+    """Generate a URL scheme handler script.
+
+    The handler script decodes URLs from custom schemes (e.g., ff://) and opens
+    them in the specified browser.
+
+    Example:
+        pwa-forge generate-handler --scheme ff --browser firefox
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = generate_handler_impl(
+            scheme=scheme,
+            config=config,
+            browser=browser,
+            out=out,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Handler script generated successfully!", fg="green")
+        else:
+            click.echo("✓ Handler script generated successfully!")
+
+        click.echo(f"  Scheme: {result['scheme']}://")
+        click.echo(f"  Browser: {result['browser']}")
+        click.echo(f"  Script: {result['script_path']}")
+
+        if not dry_run:
+            click.echo(f"\nNext step: Install the handler with:\n" f"  pwa-forge install-handler --scheme {scheme}")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except HandlerCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@cli.command()
+@click.option("--scheme", required=True, help="URL scheme to register")
+@click.option("--handler-script", type=click.Path(), help="Path to handler script (auto-detected if omitted)")
+@click.option("--dry-run", is_flag=True, help="Show what would be created")
+@click.pass_context
+def install_handler(
+    ctx: click.Context,
+    scheme: str,
+    handler_script: str | None,
+    dry_run: bool,
+) -> None:
+    """Register a URL scheme handler with the system.
+
+    Creates a .desktop file, registers the MIME type handler with XDG, and adds
+    the handler to the registry.
+
+    Example:
+        pwa-forge install-handler --scheme ff
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = install_handler_impl(
+            scheme=scheme,
+            config=config,
+            handler_script=handler_script,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Handler installed successfully!", fg="green")
+        else:
+            click.echo("✓ Handler installed successfully!")
+
+        click.echo(f"  Scheme: {result['scheme']}://")
+        click.echo(f"  MIME type: {result['mime_type']}")
+        click.echo(f"  Desktop file: {result['desktop_file']}")
+
+        if not dry_run:
+            click.echo(f"\nHandler is now registered. Links using {scheme}:// will open in your browser.")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except HandlerCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@cli.command()
+@click.option("--scheme", help="URL scheme to redirect to (default: from config)")
+@click.option("--in-scope-hosts", help="Comma-separated list of hosts to keep in-app")
+@click.option("--url-pattern", default="*://*/*", help="URL pattern to match")
+@click.option("--out", type=click.Path(), help="Output path for userscript")
+@click.option("--dry-run", is_flag=True, help="Show what would be created")
+@click.pass_context
+def generate_userscript(
+    ctx: click.Context,
+    scheme: str | None,
+    in_scope_hosts: str | None,
+    url_pattern: str,
+    out: str | None,
+    dry_run: bool,
+) -> None:
+    """Generate a userscript for external link interception.
+
+    The userscript intercepts external links in a PWA and redirects them to a
+    custom URL scheme, which is then handled by a registered handler.
+
+    Example:
+        pwa-forge generate-userscript --scheme ff --in-scope-hosts "example.com,api.example.com"
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = generate_userscript_impl(
+            config=config,
+            scheme=scheme,
+            in_scope_hosts=in_scope_hosts,
+            url_pattern=url_pattern,
+            out=out,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Userscript generated successfully!", fg="green")
+        else:
+            click.echo("✓ Userscript generated successfully!")
+
+        click.echo(f"  Scheme: {result['scheme']}://")
+        click.echo(f"  In-scope hosts: {', '.join(result['in_scope_hosts']) if result['in_scope_hosts'] else 'none'}")
+        click.echo(f"  Userscript: {result['userscript_path']}")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except UserscriptCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 def _read_package_version() -> str:
