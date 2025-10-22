@@ -404,7 +404,7 @@ case "$decoded" in
   http://*|https://*)
     # Log the action (optional)
     logger -t pwa-forge-handler "Opening: $decoded"
-    
+
     # Launch browser
     exec "{{ browser_exec }}" --new-window "$decoded"
     ;;
@@ -460,7 +460,7 @@ esac
       const targetUrl = new URL(href, location.href).toString();
       const encoded = encodeURIComponent(targetUrl);
       const newHref = SCHEME + ':' + encoded;
-      
+
       e.preventDefault();
       setTimeout(() => { location.href = newHref; }, 0);
     }
@@ -472,7 +472,7 @@ esac
         const href = a.getAttribute('href');
         if (!href) return;
         if (href.startsWith('mailto:') || href.startsWith('tel:')) return;
-        
+
         if (isExternal(href)) {
           const targetUrl = new URL(href, location.href).toString();
           a.setAttribute('href', SCHEME + ':' + encodeURIComponent(targetUrl));
@@ -1091,7 +1091,7 @@ The following must work reliably:
 def generate_id(name: str) -> str:
     """
     Generate a valid ID from a display name.
-    
+
     Examples:
         "ChatGPT-DNAI" -> "chatgpt-dnai"
         "My App!" -> "my-app"
@@ -1175,15 +1175,15 @@ def generate_id(name: str) -> str:
 def install_icon(source: str, app_id: str, icons_dir: Path) -> Path:
     """
     Copy or download icon to pwa-forge icons directory.
-    
+
     Args:
         source: Path to icon file or URL
         app_id: Application ID
         icons_dir: Target directory for icons
-        
+
     Returns:
         Path to installed icon
-        
+
     Raises:
         ValueError: If source is invalid or icon format unsupported
     """
@@ -1242,7 +1242,7 @@ def validate_flags(flags: Dict[str, Any]) -> List[str]:
 def generate_wm_class(app_name: str) -> str:
     """
     Generate StartupWMClass from app name.
-    
+
     Examples:
         "ChatGPT-DNAI" -> "ChatGPTDnai"
         "my app" -> "MyApp"
@@ -1330,17 +1330,17 @@ from jsonschema import validate, ValidationError
 def validate_manifest(manifest_path: Path) -> Dict[str, Any]:
     """
     Load and validate manifest file.
-    
+
     Returns:
         Validated manifest as dictionary
-        
+
     Raises:
         ValidationError: If manifest is invalid
         FileNotFoundError: If manifest file doesn't exist
     """
     with open(manifest_path) as f:
         manifest = yaml.safe_load(f)
-    
+
     validate(instance=manifest, schema=MANIFEST_SCHEMA)
     return manifest
 ```
@@ -1388,7 +1388,7 @@ class XDGManager:
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to update desktop database: {e.stderr}")
             return False
-    
+
     @staticmethod
     def set_mime_handler(mime_type: str, desktop_file: str) -> bool:
         """Register MIME type handler."""
@@ -1401,7 +1401,7 @@ class XDGManager:
             return True
         except subprocess.CalledProcessError:
             return False
-    
+
     @staticmethod
     def get_mime_handler(mime_type: str) -> str:
         """Query current handler for MIME type."""
@@ -1441,12 +1441,12 @@ class BrowserDetector:
             '/usr/bin/microsoft-edge',
         ],
     }
-    
+
     @classmethod
     def find_browser(cls, browser_name: str) -> Optional[Path]:
         """
         Find browser executable.
-        
+
         Returns:
             Path to browser or None if not found
         """
@@ -1454,13 +1454,13 @@ class BrowserDetector:
         config_path = Config.get_browser_path(browser_name)
         if config_path and Path(config_path).exists():
             return Path(config_path)
-        
+
         # Then check known paths
         for path_str in cls.BROWSER_PATHS.get(browser_name, []):
             path = Path(path_str)
             if path.exists() and path.is_file():
                 return path
-        
+
         # Finally try which/where
         try:
             result = subprocess.run(
@@ -1472,7 +1472,7 @@ class BrowserDetector:
             return Path(result.stdout.strip())
         except subprocess.CalledProcessError:
             return None
-    
+
     @classmethod
     def detect_all(cls) -> Dict[str, Path]:
         """Detect all available browsers."""
@@ -1496,14 +1496,14 @@ class BrowserDetector:
 class FileOperations:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
-    
+
     def write_file(self, path: Path, content: str) -> bool:
         """Write file or simulate if dry-run."""
         if self.dry_run:
             logger.info(f"[DRY-RUN] Would write to {path}")
             logger.debug(f"[DRY-RUN] Content:\n{content}")
             return True
-        
+
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
@@ -1512,13 +1512,13 @@ class FileOperations:
         except IOError as e:
             logger.error(f"Failed to write {path}: {e}")
             return False
-    
+
     def remove_file(self, path: Path) -> bool:
         """Remove file or simulate if dry-run."""
         if self.dry_run:
             logger.info(f"[DRY-RUN] Would remove {path}")
             return True
-        
+
         try:
             if path.exists():
                 path.unlink()
@@ -1544,20 +1544,20 @@ def print_userscript_instructions(app_id: str, userscript_path: Path):
 To enable external link redirection for '{app_id}', you need to:
 
 1. Install a userscript manager in your PWA profile:
-   
+
    • Open the PWA: pwa-forge launch {app_id}
    • Navigate to Chrome Web Store
    • Install "Violentmonkey" or "Tampermonkey"
 
 2. Install the generated userscript:
-   
+
    • Open Violentmonkey/Tampermonkey dashboard
    • Click "+ " or "Create new script"
    • Copy the content from: {userscript_path}
    • Save the script
 
 3. Test external link redirection:
-   
+
    • Click an external link in the PWA
    • It should open in your system browser (Firefox)
 
@@ -1578,7 +1578,7 @@ from contextlib import contextmanager
 class Registry:
     def __init__(self, registry_path: Path):
         self.registry_path = registry_path
-    
+
     @contextmanager
     def _lock(self):
         """Acquire exclusive lock on registry file."""
@@ -1590,14 +1590,14 @@ class Registry:
         finally:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
             lock_file.close()
-    
+
     def read(self) -> Dict:
         """Read registry with lock."""
         with self._lock():
             if not self.registry_path.exists():
                 return {'version': 1, 'apps': [], 'handlers': []}
             return json.loads(self.registry_path.read_text())
-    
+
     def write(self, data: Dict):
         """Write registry with lock."""
         with self._lock():
@@ -1618,7 +1618,7 @@ from urllib.parse import urlparse
 def validate_url(url: str, verify: bool = False) -> tuple[bool, str]:
     """
     Validate URL format and optionally check accessibility.
-    
+
     Returns:
         (is_valid, message)
     """
@@ -1627,19 +1627,19 @@ def validate_url(url: str, verify: bool = False) -> tuple[bool, str]:
         parsed = urlparse(url)
     except Exception as e:
         return False, f"Invalid URL format: {e}"
-    
+
     # Check scheme
     if parsed.scheme not in ('http', 'https'):
         return False, "URL must use http:// or https://"
-    
+
     # Check host
     if not parsed.netloc:
         return False, "URL must include a hostname"
-    
+
     # Warn about localhost
     if parsed.netloc in ('localhost', '127.0.0.1', '::1'):
         return True, "Warning: localhost URLs won't work from system launcher"
-    
+
     # Optional connectivity check
     if verify:
         try:
@@ -1648,7 +1648,7 @@ def validate_url(url: str, verify: bool = False) -> tuple[bool, str]:
                 return False, f"URL returned HTTP {response.status_code}"
         except requests.RequestException as e:
             return False, f"URL not accessible: {e}"
-    
+
     return True, "OK"
 ```
 
@@ -1847,20 +1847,20 @@ Commands:
   template           Show file templates
   scaffold           Create skeleton PWA configuration
   doctor             Check system requirements
-  
+
 Examples:
   # Create a simple PWA
   pwa-forge add https://chat.openai.com --name "ChatGPT"
-  
+
   # Create with external link handling
   pwa-forge add https://mail.google.com --name Gmail --out-of-scope open-in-default
   pwa-forge generate-handler --scheme ff --browser firefox
   pwa-forge install-handler --scheme ff
-  
+
   # List and audit
   pwa-forge list --verbose
   pwa-forge audit chatgpt --fix
-  
+
   For more help: https://github.com/yourusername/pwa-forge
 ```
 
@@ -1897,13 +1897,13 @@ Options:
 Examples:
   # Simple creation
   pwa-forge add https://chat.openai.com --name "ChatGPT"
-  
+
   # With custom profile and icon
   pwa-forge add https://app.slack.com/client \
       --name "Slack" \
       --profile ~/.config/slack-pwa \
       --icon ~/Pictures/slack.svg
-  
+
   # With external link handling
   pwa-forge add https://mail.google.com \
       --name Gmail \

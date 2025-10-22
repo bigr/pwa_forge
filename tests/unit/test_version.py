@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from click.testing import CliRunner
-
 from pwa_forge import __version__
 from pwa_forge.cli import cli
 

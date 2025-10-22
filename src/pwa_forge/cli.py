@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.metadata
-from typing import Optional
 
 import click
 
@@ -30,7 +29,7 @@ def _read_package_version() -> str:
         return __version__
 
 
-def main(argv: Optional[list[str]] = None) -> None:
+def main(argv: list[str] | None = None) -> None:
     """Execute the CLI entry point."""
     cli.main(args=argv, prog_name="pwa-forge", standalone_mode=False)
 
