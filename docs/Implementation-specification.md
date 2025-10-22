@@ -981,12 +981,12 @@ The following must work reliably:
 
 ### Phase 2: Basic PWA Management
 - [ ] `add` command implementation
-  - [ ] URL validation
+  - [X] URL validation
   - [ ] Profile directory creation
   - [ ] Wrapper script generation
   - [ ] Desktop file generation
   - [ ] Icon handling (copy from path)
-  - [ ] Registry entry creation
+  - [X] Registry entry creation
 - [ ] `list` command implementation
   - [ ] Table format output
   - [ ] JSON/YAML format support
