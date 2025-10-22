@@ -995,10 +995,10 @@ The following must work reliably:
   - [ ] Safe file deletion
   - [ ] Profile cleanup option
   - [ ] Registry update
-- [ ] Registry management
-  - [ ] JSON-based index
-  - [ ] CRUD operations
-  - [ ] Locking for concurrent access
+- [X] Registry management
+  - [X] JSON-based index
+  - [X] CRUD operations
+  - [X] Locking for concurrent access
 
 ### Phase 3: Browser Integration Test Framework
 - [ ] Tooling setup
