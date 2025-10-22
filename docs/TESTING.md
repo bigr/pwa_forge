@@ -19,6 +19,44 @@ pytest tests/unit/test_paths.py::TestExpandPath::test_expand_home_directory
 pytest tests/playwright -v
 ```
 
+## Using Make for Common Tasks
+
+We provide a `Makefile` with convenient targets for testing and development:
+
+```bash
+# Show all available targets
+make help
+
+# Install development dependencies
+make install-dev
+
+# Install Playwright and browsers
+make install-playwright
+
+# Run unit tests with coverage (fast)
+make test
+
+# Run Playwright tests
+make test-playwright
+
+# Run all tests including Playwright
+make test-all
+
+# Simulate CI pipeline locally (recommended before pushing)
+make ci-local
+
+# Run linting
+make lint
+
+# Format code
+make format
+
+# Generate HTML coverage report
+make coverage
+```
+
+The `make ci-local` target is especially useful to catch issues before pushing to GitHub.
+
 ## Multi-Version Testing with Tox
 
 To test across multiple Python versions (3.10, 3.11, 3.12, 3.13):
@@ -41,6 +79,9 @@ tox -e format
 
 # Run Playwright browser integration tests
 tox -e playwright
+
+# Run all tests (unit + Playwright) with combined coverage
+tox -e coverage-all
 ```
 
 ### Installing Multiple Python Versions
@@ -193,6 +234,23 @@ The browser integration tests verify:
    - Non-HTTP/HTTPS URLs are rejected for security
    - Empty or invalid input is rejected gracefully
 
+### Coverage for Playwright Tests
+
+Playwright tests can be included in coverage reports:
+
+```bash
+# Run Playwright tests with coverage
+pytest tests/playwright --cov=pwa_forge --cov-report=term-missing
+
+# Run all tests (unit + Playwright) with combined coverage
+tox -e coverage-all
+
+# Or using Make
+make test-all  # Includes coverage for all tests
+```
+
+Coverage tracking for Playwright tests verifies that our userscript templates and handler script templates are properly exercised during browser integration testing.
+
 ### Skipping Playwright Tests
 
 Playwright tests are marked with `@pytest.mark.playwright` and can be skipped:
@@ -201,8 +259,8 @@ Playwright tests are marked with `@pytest.mark.playwright` and can be skipped:
 # Run all tests EXCEPT Playwright tests
 pytest -m "not playwright"
 
-# This is the default behavior in regular test runs
-pytest
+# Or use the convenience Make target
+make test
 ```
 
 ### CI Integration

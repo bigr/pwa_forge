@@ -104,7 +104,7 @@ module = ["playwright.*", "pytest_playwright.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=pwa_forge --cov-report=term-missing"
+addopts = "-q"
 testpaths = ["tests"]
 markers = [
     "playwright: marks tests as requiring Playwright (deselect with '-m \"not playwright\"')",

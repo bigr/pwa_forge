@@ -91,13 +91,17 @@ pip install -e .
 Run tests and checks:
 
 ```bash
-# Run unit and integration tests
-pytest -m "not playwright"
+# Recommended: Use Make targets for convenience
+make help           # Show all available targets
+make test           # Run unit tests with coverage
+make test-playwright # Run Playwright browser tests
+make ci-local       # Simulate CI locally (recommended before push!)
 
-# Run with coverage
-pytest --cov=pwa_forge -m "not playwright"
+# Or run pytest directly
+pytest -m "not playwright"  # Unit tests only
+pytest --cov=pwa_forge -m "not playwright"  # With coverage
 
-# Run Playwright browser integration tests (requires Playwright)
+# Playwright browser integration tests (requires installation)
 pip install .[playwright]
 python -m playwright install chromium
 pytest tests/playwright -v
