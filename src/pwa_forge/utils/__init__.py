@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from pwa_forge.utils import paths
+from pwa_forge.utils import logger, paths
 
-__all__ = ["paths"]
+__all__ = ["logger", "paths"]
