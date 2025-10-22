@@ -110,6 +110,11 @@ pre-commit run --all-files
 - Specs and deep dives live in `docs/`
 - Near-term focus: better Wayland support, icon fetching, backup/restore flows
 
+## Continuous Integration
+
+- **CI Pipeline**: GitHub Actions workflow at `.github/workflows/ci.yml` runs linting, type checks, and tests on pushes and pull requests targeting `main`.
+- **Status Badge**: Add your repository badge once published, e.g. `![CI](https://github.com/<user>/pwa_forge/actions/workflows/ci.yml/badge.svg)`.
+
 ## License
 
 This project is licensed under the MIT License. See `LICENSE` for details.
