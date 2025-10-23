@@ -30,33 +30,41 @@ cd pwa_forge
 pip install -e .
 ```
 
-## Quick Start
+## Usage
+
+### Basic PWA Creation
 
 ```bash
-# Add a web app with its own profile and launcher
-pwa-forge add https://example.com --name "Example App"
+# Add a web app with isolated profile and desktop launcher
+pwa-forge add https://notion.so --name "Notion" --browser chrome
 
-# Inspect installed PWAs
+# Add with custom ID and icon
+pwa-forge add https://discord.com --name "Discord" --app-id discord --icon ~/discord-logo.png
+```
+
+### Management
+
+```bash
+# List all installed PWAs
 pwa-forge list
 
-# Remove an app and its assets
-pwa-forge remove example-app --remove-profile --remove-icon
+# Edit PWA manifest (opens in $EDITOR)
+pwa-forge edit notion
+
+# Remove PWA and its data
+pwa-forge remove notion --remove-profile --remove-icon
 ```
 
-## External Link Handling
+### External Link Handling
 
 ```bash
-# Create a firefox-backed handler for ff:// URLs
-pwa-forge generate-handler --scheme ff --browser firefox
+# Create handler for custom URLs (opens external links in system browser)
+pwa-forge generate-handler --scheme ext --browser firefox
+pwa-forge install-handler --scheme ext
 
-# Register it with XDG
-pwa-forge install-handler --scheme ff
-
-# Optional userscript to rewrite external links inside the PWA
-pwa-forge generate-userscript --scheme ff --in-scope-hosts example.com
+# Generate userscript to rewrite external links
+pwa-forge generate-userscript --scheme ext --in-scope-hosts notion.so
 ```
-
-Clicks that leave the PWA are rewritten to the custom scheme and opened in the system browser.
 
 ## Configuration & Maintenance
 
@@ -77,59 +85,27 @@ pwa-forge doctor
 
 ## Development
 
-Set up a development environment:
-
 ```bash
 git clone https://github.com/bigr/pwa_forge.git
 cd pwa_forge
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
-pip install -e .
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt && pip install -e .
+
+# Run tests and checks
+make ci-local       # Recommended: simulate CI locally
+make test          # Run unit tests with coverage
+make help          # Show all available targets
+
+# Install pre-commit hooks
+pip install pre-commit && pre-commit install
 ```
-
-Run tests and checks:
-
-```bash
-# Recommended: Use Make targets for convenience
-make help           # Show all available targets
-make test           # Run unit tests with coverage
-make test-playwright # Run Playwright browser tests
-make ci-local       # Simulate CI locally (recommended before push!)
-
-# Or run pytest directly
-pytest -m "not playwright"  # Unit tests only
-pytest --cov=pwa_forge -m "not playwright"  # With coverage
-
-# Playwright browser integration tests (requires installation)
-pip install .[playwright]
-python -m playwright install chromium
-pytest tests/playwright -v
-
-# Linting and type checking
-ruff check src tests
-mypy src
-```
-
-Install and run pre-commit hooks:
-
-```bash
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files
-```
-
-See `docs/TESTING.md` for comprehensive testing documentation.
 
 ## Documentation & Roadmap
 
+- Full usage guide and examples: `docs/USAGE.md`
+- Comprehensive testing documentation: `docs/TESTING.md`
 - Specs and deep dives live in `docs/`
 - Near-term focus: better Wayland support, icon fetching, backup/restore flows
-
-## Continuous Integration
-
-- **CI Pipeline**: GitHub Actions workflow at `.github/workflows/ci.yml` runs linting, type checks, and tests on pushes and pull requests targeting `main`.
-- **Status Badge**: Add your repository badge once published, e.g. `![CI](https://github.com/<user>/pwa_forge/actions/workflows/ci.yml/badge.svg)`.
 
 ## License
 
