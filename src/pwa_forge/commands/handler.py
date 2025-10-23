@@ -91,8 +91,7 @@ def generate_handler(
     # Validate scheme
     if not scheme or not scheme.replace("-", "").replace("_", "").isalnum():
         raise HandlerCommandError(
-            f"Invalid scheme: {scheme}\n"
-            "  → Scheme must contain only alphanumeric characters, hyphens, and underscores"
+            f"Invalid scheme: {scheme}\n  → Scheme must contain only alphanumeric characters, hyphens, and underscores"
         )
 
     # Find browser executable
@@ -217,10 +216,10 @@ def install_handler(
             logger.info(f"Registered MIME type handler: {mime_type}")
         except subprocess.CalledProcessError as e:
             raise HandlerCommandError(
-                f"Failed to register MIME type handler: {e.stderr.decode()}\n" f"  → Make sure xdg-utils is installed"
+                f"Failed to register MIME type handler: {e.stderr.decode()}\n  → Make sure xdg-utils is installed"
             ) from e
         except FileNotFoundError as e:
-            raise HandlerCommandError("xdg-mime command not found\n" "  → Install xdg-utils package") from e
+            raise HandlerCommandError("xdg-mime command not found\n  → Install xdg-utils package") from e
 
         # Verify registration
         try:

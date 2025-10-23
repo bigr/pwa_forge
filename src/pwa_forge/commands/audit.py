@@ -401,8 +401,7 @@ def audit_app(
         })
 
     logger.info(
-        f"Audit complete: {len(apps)} apps audited, "
-        f"{total_passed} passed, {total_failed} failed, {total_fixed} fixed"
+        f"Audit complete: {len(apps)} apps audited, {total_passed} passed, {total_failed} failed, {total_fixed} fixed"
     )
 
     return {

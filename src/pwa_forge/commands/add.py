@@ -226,10 +226,12 @@ def add_app(
         "id": app_id,
         "name": name,
         "url": url,
+        "browser": browser,
         "profile": str(profile_path),
         "wrapper": str(wrapper_path),
         "desktop_file": str(desktop_file_path),
         "manifest": str(manifest_path),
+        "icon": str(icon_path) if icon_path else None,
     }
 
 
@@ -305,7 +307,7 @@ def _parse_chrome_flags(flags_str: str) -> dict[str, Any]:
     """Parse Chrome flags string.
 
     Args:
-        flags_str: Space-separated flags string.
+        flags_str: Semicolon-separated flags string (e.g., "enable-features=A,B;disable-features=C").
 
     Returns:
         Dictionary with parsed flags.
@@ -316,8 +318,23 @@ def _parse_chrome_flags(flags_str: str) -> dict[str, Any]:
         "additional": "",
     }
 
-    # Simple parsing - just store as additional for now
-    result["additional"] = flags_str.strip()
+    # Parse semicolon-separated flags
+    for flag in flags_str.split(";"):
+        flag = flag.strip()
+        if not flag:
+            continue
+
+        if flag.startswith("enable-features="):
+            features = flag.replace("enable-features=", "").split(",")
+            result["enable_features"] = [f.strip() for f in features if f.strip()]
+        elif flag.startswith("disable-features="):
+            features = flag.replace("disable-features=", "").split(",")
+            result["disable_features"] = [f.strip() for f in features if f.strip()]
+        else:
+            # Unknown flags go to additional
+            if result["additional"]:
+                result["additional"] += " "
+            result["additional"] += flag
 
     return result
 

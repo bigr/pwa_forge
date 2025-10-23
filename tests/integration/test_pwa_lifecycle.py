@@ -409,7 +409,465 @@ class TestPWALifecycle:
         assert app is not None
         assert app["name"] == "JSON Test"
         assert app["url"] == "https://json-test.com"
-        assert app["status"] == "active"
-        assert "manifest_path" in app
-        assert "desktop_file" in app
-        assert "wrapper_script" in app
+
+    def test_remove_manifest_load_error_handling(self, test_config: Config) -> None:
+        """Test that remove handles manifest loading errors gracefully."""
+        # Add PWA first
+        result = add_app(
+            url="https://manifest-error.com",
+            config=test_config,
+            name="Manifest Error Test",
+            app_id="manifest-error",
+            dry_run=False,
+        )
+
+        manifest_path = Path(result["manifest"])
+        # Corrupt the manifest file
+        manifest_path.write_text("invalid: yaml: content: [unclosed")
+
+        # Remove should handle the error gracefully and continue
+        remove_app(
+            app_id="manifest-error",
+            config=test_config,
+            remove_profile=True,
+            dry_run=False,
+        )
+
+        # Files should still be removed despite manifest error
+        assert not manifest_path.exists()
+        assert not Path(result["wrapper"]).exists()
+        assert not Path(result["desktop_file"]).exists()
+
+    def test_remove_empty_directory_cleanup(self, test_config: Config) -> None:
+        """Test that remove cleans up empty directories."""
+        # Add PWA
+        result = add_app(
+            url="https://cleanup-test.com",
+            config=test_config,
+            name="Cleanup Test",
+            app_id="cleanup-test",
+            dry_run=False,
+        )
+
+        manifest_path = Path(result["manifest"])
+        manifest_dir = manifest_path.parent
+        profile_path = Path(result["profile"])
+
+        # Verify directory exists
+        assert manifest_dir.exists()
+
+        # Remove with profile deletion (should clean up directory)
+        remove_app(
+            app_id="cleanup-test",
+            config=test_config,
+            remove_profile=True,
+            dry_run=False,
+        )
+
+        # Manifest directory should be removed (it's empty now)
+        assert not manifest_dir.exists()
+        # Profile directory should also be removed
+        assert not profile_path.exists()
+
+    def test_remove_directory_with_files_preserved(self, test_config: Config) -> None:
+        """Test that remove preserves directory when it contains files."""
+        # Add PWA
+        result = add_app(
+            url="https://preserve-dir.com",
+            config=test_config,
+            name="Preserve Dir Test",
+            app_id="preserve-dir",
+            dry_run=False,
+        )
+
+        manifest_path = Path(result["manifest"])
+        manifest_dir = manifest_path.parent
+
+        # Add a file to the directory (simulating extra files)
+        extra_file = manifest_dir / "extra_file.txt"
+        extra_file.write_text("This should prevent directory removal")
+
+        # Remove without profile deletion
+        remove_app(
+            app_id="preserve-dir",
+            config=test_config,
+            remove_profile=False,
+            dry_run=False,
+        )
+
+        # Directory should still exist because it contains extra files
+        assert manifest_dir.exists()
+        assert extra_file.exists()
+
+    def test_remove_icon_cleanup(self, test_config: Config, tmp_path: Path) -> None:
+        """Test that remove can clean up icon files."""
+        # Create a fake icon file
+        icon_path = tmp_path / "test_icon.svg"
+        icon_path.write_text("<svg></svg>")
+
+        # Add PWA with icon
+        result = add_app(
+            url="https://icon-test.com",
+            config=test_config,
+            name="Icon Test",
+            app_id="icon-test",
+            icon=str(icon_path),
+            dry_run=False,
+        )
+
+        # Verify icon was copied to icons directory
+        manifest_path = Path(result["manifest"])
+        with open(manifest_path) as f:
+            manifest = yaml.safe_load(f)
+        copied_icon = Path(manifest["icon"])
+        assert copied_icon.exists()
+
+        # Remove with icon cleanup
+        remove_app(
+            app_id="icon-test",
+            config=test_config,
+            remove_icon=True,
+            dry_run=False,
+        )
+
+        # Icon should be removed
+        assert not copied_icon.exists()
+
+    def test_remove_dry_run_preserves_files(self, test_config: Config) -> None:
+        """Test that remove dry-run mode preserves all files."""
+        # Add PWA
+        result = add_app(
+            url="https://dry-remove.com",
+            config=test_config,
+            name="Dry Remove Test",
+            app_id="dry-remove",
+            dry_run=False,
+        )
+
+        wrapper_path = Path(result["wrapper"])
+        desktop_path = Path(result["desktop_file"])
+        manifest_path = Path(result["manifest"])
+        profile_path = Path(result["profile"])
+
+        # Remove in dry-run mode
+        remove_app(
+            app_id="dry-remove",
+            config=test_config,
+            remove_profile=True,
+            remove_icon=True,
+            dry_run=True,
+        )
+
+        # All files should still exist
+        assert wrapper_path.exists()
+        assert desktop_path.exists()
+        assert manifest_path.exists()
+        assert profile_path.exists()
+
+        # Registry should still contain the app
+        registry = Registry(test_config.registry_file)
+        apps = registry.list_apps()
+        assert any(app["id"] == "dry-remove" for app in apps)
+
+    def test_list_apps_yaml_output(self, test_config: Config, capsys) -> None:
+        """Test list_apps with YAML output format."""
+        # Add a PWA first
+        add_app(
+            url="https://yaml-list.com",
+            config=test_config,
+            name="YAML List Test",
+            app_id="yaml-list",
+            dry_run=False,
+        )
+
+        # List in YAML format
+        result = list_apps(test_config, verbose=False, output_format="yaml")
+
+        # Should return the apps list
+        assert len(result) == 1
+        assert result[0]["id"] == "yaml-list"
+
+        # Check that YAML was printed to stdout
+        captured = capsys.readouterr()
+        assert "yaml-list" in captured.out
+        assert "YAML List Test" in captured.out
+        assert "https://yaml-list.com" in captured.out
+
+    def test_list_apps_verbose_table_output(self, test_config: Config, capsys) -> None:
+        """Test list_apps with verbose table output."""
+        # Add a PWA first
+        add_app(
+            url="https://verbose-list.com",
+            config=test_config,
+            name="Verbose List Test",
+            app_id="verbose-list",
+            dry_run=False,
+        )
+
+        # List in verbose table format
+        result = list_apps(test_config, verbose=True, output_format="table")
+
+        # Should return the apps list
+        assert len(result) == 1
+        assert result[0]["id"] == "verbose-list"
+
+        # Check that verbose output was printed to stdout
+        captured = capsys.readouterr()
+        output = captured.out
+        assert "ID: verbose-list" in output
+        assert "Name: Verbose List Test" in output
+        assert "URL: https://verbose-list.com" in output
+        assert "Status: active" in output
+        assert "Desktop File:" in output
+        assert "Wrapper Script:" in output
+        assert "Manifest:" in output
+
+    def test_list_apps_empty_registry(self, test_config: Config, capsys) -> None:
+        """Test list_apps with empty registry."""
+        # List with empty registry
+        result = list_apps(test_config, verbose=False, output_format="table")
+
+        # Should return empty list
+        assert result == []
+
+        # Should print table header even with no apps
+        captured = capsys.readouterr()
+        # When there are no apps, table format still prints headers
+        lines = captured.out.strip().split("\n")
+        if lines and lines[0]:  # If there's output
+            assert "ID" in lines[0] or "Name" in lines[0]  # Table headers
+        # Empty registry doesn't print "No PWAs found" to stdout, it's just logged
+
+
+class TestAddCommandIntegration:
+    """Comprehensive integration tests for add command."""
+
+    def test_add_with_icon_copy_operation(self, test_config: IsolatedConfig, tmp_path: Path) -> None:
+        """Test add command copies icon file."""
+        # Create a test icon
+        icon_file = tmp_path / "test_icon.png"
+        icon_file.write_text("fake png content")
+
+        result = add_app(
+            url="https://icon-test.com",
+            config=test_config,
+            name="Icon Test",
+            app_id="icon-test",
+            icon=str(icon_file),
+            dry_run=False,
+        )
+
+        # Verify icon was copied to icons directory
+        assert result["icon"] is not None
+        copied_icon = Path(result["icon"])
+        assert copied_icon.exists()
+        assert copied_icon.parent == test_config.directories.icons
+        assert copied_icon.read_text() == "fake png content"
+
+    def test_add_with_custom_browser_executable(self, test_config: IsolatedConfig, tmp_path: Path) -> None:
+        """Test add with custom browser executable path."""
+        # Create a fake browser
+        custom_browser = tmp_path / "custom-chrome"
+        custom_browser.write_text("#!/bin/bash\necho 'custom browser'\n")
+        custom_browser.chmod(0o755)
+
+        # Update config to use custom browser
+        test_config.browsers.chrome = str(custom_browser)
+
+        result = add_app(
+            url="https://custom-browser.com",
+            config=test_config,
+            name="Custom Browser Test",
+            app_id="custom-browser",
+            browser="chrome",
+            dry_run=False,
+        )
+
+        # Verify wrapper script contains custom browser path
+        wrapper_path = Path(result["wrapper"])
+        content = wrapper_path.read_text()
+        assert str(custom_browser) in content
+
+    def test_add_with_profile_directory_creation(self, test_config: IsolatedConfig) -> None:
+        """Test add creates profile directory."""
+        result = add_app(
+            url="https://profile-test.com",
+            config=test_config,
+            name="Profile Test",
+            app_id="profile-test",
+            dry_run=False,
+        )
+
+        # Verify profile directory was created
+        profile_path = Path(result["profile"])
+        assert profile_path.exists()
+        assert profile_path.is_dir()
+
+        # Verify it's under the apps directory
+        assert profile_path == test_config.directories.apps / "profile-test"
+
+    def test_add_with_wm_class_generation(self, test_config: IsolatedConfig) -> None:
+        """Test add generates WM class from app name."""
+        result = add_app(
+            url="https://wm-test.com",
+            config=test_config,
+            name="My Test App",
+            app_id="wm-test",
+            dry_run=False,
+        )
+
+        # Check manifest contains WM class
+        manifest_path = Path(result["manifest"])
+        import yaml
+
+        with open(manifest_path) as f:
+            manifest = yaml.safe_load(f)
+
+        assert "wm_class" in manifest
+        assert manifest["wm_class"] == "MyTestApp"
+
+    def test_add_with_chrome_flags_integration(self, test_config: IsolatedConfig) -> None:
+        """Test add integrates chrome flags into wrapper."""
+        # Pass chrome flags explicitly
+        result = add_app(
+            url="https://flags-test.com",
+            config=test_config,
+            name="Flags Test",
+            app_id="flags-test",
+            chrome_flags="enable-features=TestFeature,AnotherFeature;disable-features=BadFeature",
+            dry_run=False,
+        )
+
+        # Verify wrapper contains chrome flags
+        wrapper_path = Path(result["wrapper"])
+        content = wrapper_path.read_text()
+        assert "--enable-features=TestFeature,AnotherFeature" in content
+        assert "--disable-features=BadFeature" in content
+
+    def test_add_with_out_of_scope_configuration(self, test_config: IsolatedConfig) -> None:
+        """Test add configures out-of-scope behavior."""
+        result = add_app(
+            url="https://scope-test.com",
+            config=test_config,
+            name="Scope Test",
+            app_id="scope-test",
+            out_of_scope="same-browser-window",
+            dry_run=False,
+        )
+
+        # Check manifest contains out-of-scope setting
+        manifest_path = Path(result["manifest"])
+        import yaml
+
+        with open(manifest_path) as f:
+            manifest = yaml.safe_load(f)
+
+        assert manifest["out_of_scope"] == "same-browser-window"
+
+    def test_add_with_userscript_injection(self, test_config: IsolatedConfig, tmp_path: Path) -> None:
+        """Test add configures userscript injection."""
+        # Create a fake userscript
+        userscript_file = tmp_path / "test.user.js"
+        userscript_file.write_text("// Test userscript")
+
+        result = add_app(
+            url="https://userscript-test.com",
+            config=test_config,
+            name="Userscript Test",
+            app_id="userscript-test",
+            inject_userscript=str(userscript_file),
+            dry_run=False,
+        )
+
+        # Check manifest contains inject config
+        manifest_path = Path(result["manifest"])
+        import yaml
+
+        with open(manifest_path) as f:
+            manifest = yaml.safe_load(f)
+
+        assert "inject" in manifest
+        assert "userscript" in manifest["inject"]
+
+    def test_add_registry_entry_creation(self, test_config: IsolatedConfig) -> None:
+        """Test add creates proper registry entry."""
+        add_app(
+            url="https://registry-test.com",
+            config=test_config,
+            name="Registry Test",
+            app_id="registry-test",
+            dry_run=False,
+        )
+
+        # Check registry contains the app
+        from pwa_forge.registry import Registry
+
+        registry = Registry(test_config.registry_file)
+        apps = registry.list_apps()
+        app_entry = next((app for app in apps if app["id"] == "registry-test"), None)
+        assert app_entry is not None
+        assert app_entry["name"] == "Registry Test"
+        assert app_entry["url"] == "https://registry-test.com"
+        assert app_entry["status"] == "active"
+        assert "manifest_path" in app_entry
+        assert "desktop_file" in app_entry
+        assert "wrapper_script" in app_entry
+
+    def test_add_desktop_file_creation(self, test_config: IsolatedConfig) -> None:
+        """Test add creates desktop file with correct content."""
+        result = add_app(
+            url="https://desktop-test.com",
+            config=test_config,
+            name="Desktop Test",
+            app_id="desktop-test",
+            dry_run=False,
+        )
+
+        # Check desktop file exists and has correct content
+        desktop_path = Path(result["desktop_file"])
+        assert desktop_path.exists()
+        assert desktop_path.name == "pwa-forge-desktop-test.desktop"  # Check filename
+
+        content = desktop_path.read_text()
+        assert "[Desktop Entry]" in content
+        assert "Name=Desktop Test" in content
+        assert "Exec=" in content  # Should contain exec line
+        assert "Icon=" in content  # Should contain icon
+
+    def test_add_error_handling_invalid_url(self, test_config: IsolatedConfig) -> None:
+        """Test add handles invalid URLs."""
+        import pytest
+        from pwa_forge.commands.add import AddCommandError
+
+        with pytest.raises(AddCommandError):
+            add_app(
+                url="not-a-valid-url",
+                config=test_config,
+                name="Invalid URL Test",
+                app_id="invalid-url",
+                dry_run=False,
+            )
+
+    def test_add_error_handling_duplicate_id(self, test_config: IsolatedConfig) -> None:
+        """Test add handles duplicate app IDs."""
+        import pytest
+        from pwa_forge.commands.add import AddCommandError
+
+        # Add first app
+        add_app(
+            url="https://first.com",
+            config=test_config,
+            name="First App",
+            app_id="duplicate-test",
+            dry_run=False,
+        )
+
+        # Try to add second app with same ID
+        with pytest.raises(AddCommandError):
+            add_app(
+                url="https://second.com",
+                config=test_config,
+                name="Second App",
+                app_id="duplicate-test",
+                dry_run=False,
+            )

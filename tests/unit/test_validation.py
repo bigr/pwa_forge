@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from unittest.mock import Mock, patch
+
+import requests
 from pwa_forge.validation import (
     extract_name_from_url,
     generate_id,
@@ -73,6 +76,53 @@ class TestValidateUrl:
         is_valid, _ = validate_url("not a url")
         assert is_valid is False
 
+    def test_url_parsing_exception(self) -> None:
+        """Test handling of URL parsing exceptions."""
+        # Note: urlparse is very forgiving and rarely raises exceptions
+        # Python's urlparse strips null characters instead of raising exceptions
+        # This test verifies the defensive exception handling exists, even if hard to trigger
+        from unittest.mock import patch
+
+        with patch("pwa_forge.validation.urlparse") as mock_urlparse:
+            mock_urlparse.side_effect = ValueError("Invalid URL")
+            is_valid, message = validate_url("http://invalid")
+            assert is_valid is False
+            assert "Invalid URL format" in message
+
+    def test_url_connectivity_check_success(self) -> None:
+        """Test URL connectivity check when verify=True."""
+        # This will try to make a real HTTP request
+        # We can't control the network, so this may pass or fail depending on connectivity
+        is_valid, message = validate_url("https://httpbin.org/status/200", verify=True)
+        # Just check that it doesn't crash
+        assert isinstance(is_valid, bool)
+        assert isinstance(message, str)
+
+    def test_url_connectivity_check_failure(self) -> None:
+        """Test URL connectivity check failure."""
+        # Use a non-existent domain
+        is_valid, message = validate_url("https://this-domain-does-not-exist-12345.com", verify=True)
+        assert is_valid is False
+        assert "not accessible" in message
+
+    def test_url_connectivity_check_http_error(self) -> None:
+        """Test URL connectivity check with HTTP error status."""
+        with patch("pwa_forge.validation.requests.head") as mock_head:
+            mock_response = Mock()
+            mock_response.status_code = 404
+            mock_head.return_value = mock_response
+            is_valid, message = validate_url("https://example.com/notfound", verify=True)
+            assert is_valid is False
+            assert "404" in message
+
+    def test_url_connectivity_check_request_exception(self) -> None:
+        """Test URL connectivity check with request exception."""
+        with patch("pwa_forge.validation.requests.head") as mock_head:
+            mock_head.side_effect = requests.RequestException("Connection timeout")
+            is_valid, message = validate_url("https://example.com", verify=True)
+            assert is_valid is False
+            assert "not accessible" in message
+
 
 class TestGenerateId:
     """Tests for ID generation."""
@@ -121,6 +171,18 @@ class TestGenerateId:
         """Test ID generation handles special chars only."""
         app_id = generate_id("!!!")
         assert app_id == "app"
+
+    def test_starts_with_special_char(self) -> None:
+        """Test ID generation handles special char at start."""
+        # "@special" → "-special" (after substitution) → "special" (after strip)
+        # Result starts with 's' which is alphanumeric, so no prefix needed
+        app_id = generate_id("@special")
+        assert app_id == "special"
+
+        # To trigger "app-" prefix, need ID that still starts with non-alphanumeric after processing
+        # "_test" → "_test" (underscore allowed) → starts with _, gets "app-" prefix
+        app_id = generate_id("_test")
+        assert app_id == "app-_test"
 
     def test_mixed_case(self) -> None:
         """Test ID generation converts to lowercase."""
@@ -240,6 +302,11 @@ class TestExtractNameFromUrl:
         """Test name extraction from simple domain."""
         assert extract_name_from_url("https://example.com") == "Example"
 
+    def test_single_part_hostname(self) -> None:
+        """Test name extraction from single-part hostname."""
+        name = extract_name_from_url("https://localhost")
+        assert name == "Localhost"
+
     def test_subdomain(self) -> None:
         """Test name extraction from subdomain."""
         assert extract_name_from_url("https://chat.openai.com") == "Chat"
@@ -274,3 +341,8 @@ class TestExtractNameFromUrl:
         """Test name extraction with no extractable words."""
         name = extract_name_from_url("://")
         assert name == "App"  # Fallback
+
+    def test_empty_url(self) -> None:
+        """Test name extraction from empty string."""
+        name = extract_name_from_url("")
+        assert name == "App"

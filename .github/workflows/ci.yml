@@ -60,7 +60,7 @@ jobs:
           python -m pip install .[dev]
 
       - name: Run test suite
-        run: pytest -q
+        run: pytest -q tests/unit tests/integration tests/e2e --cov=pwa_forge --cov-report=term-missing --cov-fail-under=60
 
   playwright:
     name: Playwright Tests (Chromium)

@@ -570,7 +570,7 @@ def generate_handler(
         click.echo(f"  Script: {result['script_path']}")
 
         if not dry_run:
-            click.echo(f"\nNext step: Install the handler with:\n" f"  pwa-forge install-handler --scheme {scheme}")
+            click.echo(f"\nNext step: Install the handler with:\n  pwa-forge install-handler --scheme {scheme}")
 
         if dry_run:
             click.echo("\n[DRY-RUN] No changes were made.")
