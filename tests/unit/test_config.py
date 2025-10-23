@@ -237,3 +237,65 @@ class TestLoadConfig:
         # This will likely not exist, so should return defaults
         cfg = config.load_config(None)
         assert isinstance(cfg, config.Config)
+
+
+class TestConfigProperties:
+    """Test Config property accessors."""
+
+    def test_desktop_dir_property(self) -> None:
+        """Test desktop_dir property."""
+        cfg = config.Config()
+        desktop_dir = cfg.desktop_dir
+        assert isinstance(desktop_dir, Path)
+
+    def test_icons_dir_property(self) -> None:
+        """Test icons_dir property."""
+        cfg = config.Config()
+        icons_dir = cfg.icons_dir
+        assert isinstance(icons_dir, Path)
+
+    def test_wrappers_dir_property(self) -> None:
+        """Test wrappers_dir property."""
+        cfg = config.Config()
+        wrappers_dir = cfg.wrappers_dir
+        assert isinstance(wrappers_dir, Path)
+
+    def test_apps_dir_property(self) -> None:
+        """Test apps_dir property."""
+        cfg = config.Config()
+        apps_dir = cfg.apps_dir
+        assert isinstance(apps_dir, Path)
+
+    def test_userscripts_dir_property(self) -> None:
+        """Test userscripts_dir property."""
+        cfg = config.Config()
+        userscripts_dir = cfg.userscripts_dir
+        assert isinstance(userscripts_dir, Path)
+
+    def test_registry_file_property(self) -> None:
+        """Test registry_file property."""
+        cfg = config.Config()
+        registry_file = cfg.registry_file
+        assert isinstance(registry_file, Path)
+        assert registry_file.name == "registry.json"
+
+
+class TestLoadConfigErrorHandling:
+    """Test error handling in load_config."""
+
+    def test_load_config_io_error_returns_defaults(self, tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """Test that IO errors in load_config return defaults."""
+        config_path = tmp_path / "config.yaml"
+
+        # Create a file but make reading it fail
+        config_path.write_text("valid: yaml")
+
+        # Mock yaml.safe_load to raise a general exception
+        def mock_safe_load(*args, **kwargs):  # type: ignore[no-untyped-def]
+            raise RuntimeError("Mock general error")
+
+        monkeypatch.setattr("yaml.safe_load", mock_safe_load)
+
+        cfg = config.load_config(config_path)
+        assert isinstance(cfg, config.Config)
+        assert cfg.default_browser == "chrome"  # Should return defaults

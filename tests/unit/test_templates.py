@@ -211,3 +211,22 @@ class TestGetTemplateEngine:
         engine1 = templates.get_template_engine()
         engine2 = templates.get_template_engine()
         assert engine1 is engine2
+
+
+class TestRenderTemplate:
+    """Test render_template function."""
+
+    def test_render_template_function(self) -> None:
+        """Test the module-level render_template function."""
+        result = templates.render_template(
+            "desktop.j2",
+            {
+                "name": "Test",
+                "wrapper_path": "/test",
+                "icon_path": "/test.png",
+                "categories": ["Test"],
+                "wm_class": "Test",
+            },
+        )
+        assert "[Desktop Entry]" in result
+        assert "Name=Test" in result

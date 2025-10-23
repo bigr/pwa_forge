@@ -35,6 +35,13 @@ class TestSetupLogging:
         assert len(log.handlers) == 1  # File handler only
         assert isinstance(log.handlers[0], logging.FileHandler)
 
+    def test_setup_logging_console_only(self) -> None:
+        """Test logging setup with console only (no file)."""
+        logger.setup_logging(console=True, log_file=None)
+        log = logging.getLogger("pwa_forge")
+        assert len(log.handlers) == 1  # Console handler only
+        assert isinstance(log.handlers[0], logging.StreamHandler)
+
     def test_setup_logging_custom_levels(self, tmp_path: Path) -> None:
         """Test logging with custom levels."""
         log_file = tmp_path / "test.log"
