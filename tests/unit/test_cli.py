@@ -152,12 +152,19 @@ class TestConfigCommands:
         assert result.exit_code == 0
         assert "Display configuration value" in result.output
 
-    def test_config_get_placeholder(self) -> None:
-        """Test config get command placeholder."""
+    def test_config_get_nonexistent_key(self) -> None:
+        """Test config get command with nonexistent key."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["config", "get", "test_key"])
+        result = runner.invoke(cli.cli, ["config", "get", "nonexistent.key"])
+        assert result.exit_code == 1
+        assert "not found" in result.output
+
+    def test_config_get_default_value(self) -> None:
+        """Test config get command returns default values."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["config", "get", "default_browser"])
         assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        assert "chrome" in result.output
 
     def test_config_set_exists(self) -> None:
         """Test that config set command is registered."""
@@ -166,12 +173,18 @@ class TestConfigCommands:
         assert result.exit_code == 0
         assert "Set configuration KEY to VALUE" in result.output
 
-    def test_config_set_placeholder(self) -> None:
-        """Test config set command placeholder."""
+    def test_config_set_and_get(self) -> None:
+        """Test config set and get commands work together."""
         runner = CliRunner()
+        # Set a value
         result = runner.invoke(cli.cli, ["config", "set", "test_key", "test_value"])
         assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        assert "Configuration updated" in result.output
+
+        # Get the value back
+        result = runner.invoke(cli.cli, ["config", "get", "test_key"])
+        assert result.exit_code == 0
+        assert "test_value" in result.output
 
     def test_config_list_exists(self) -> None:
         """Test that config list command is registered."""
@@ -180,12 +193,12 @@ class TestConfigCommands:
         assert result.exit_code == 0
         assert "Show all configuration values" in result.output
 
-    def test_config_list_placeholder(self) -> None:
-        """Test config list command placeholder."""
+    def test_config_list_shows_values(self) -> None:
+        """Test config list command shows configuration."""
         runner = CliRunner()
         result = runner.invoke(cli.cli, ["config", "list"])
         assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        assert "configuration" in result.output.lower()
 
     def test_config_reset_exists(self) -> None:
         """Test that config reset command is registered."""
@@ -194,12 +207,39 @@ class TestConfigCommands:
         assert result.exit_code == 0
         assert "Reset configuration to defaults" in result.output
 
-    def test_config_reset_placeholder(self) -> None:
-        """Test config reset command placeholder."""
+    def test_config_reset_with_yes_flag(self) -> None:
+        """Test config reset command with --yes flag."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["config", "reset"])
+        result = runner.invoke(cli.cli, ["config", "reset", "--yes"])
         assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        assert "reset" in result.output.lower()
+
+
+class TestCompletionCommand:
+    """Test shell completion command."""
+
+    def test_completion_bash(self) -> None:
+        """Test completion command for bash."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["completion", "--shell", "bash"])
+        assert result.exit_code == 0
+        assert "bash" in result.output.lower()
+        assert "bashrc" in result.output.lower()
+
+    def test_completion_zsh(self) -> None:
+        """Test completion command for zsh."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["completion", "--shell", "zsh"])
+        assert result.exit_code == 0
+        assert "zsh" in result.output.lower()
+        assert "zshrc" in result.output.lower()
+
+    def test_completion_fish(self) -> None:
+        """Test completion command for fish."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["completion", "--shell", "fish"])
+        assert result.exit_code == 0
+        assert "fish" in result.output.lower()
 
 
 class TestVerbosityOptions:

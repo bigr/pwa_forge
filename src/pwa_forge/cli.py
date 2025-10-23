@@ -10,6 +10,16 @@ import click
 from pwa_forge.commands.add import AddCommandError, add_app
 from pwa_forge.commands.audit import AuditCommandError
 from pwa_forge.commands.audit import audit_app as audit_app_impl
+from pwa_forge.commands.config_cmd import (
+    ConfigCommandError,
+    config_edit,
+    config_get,
+    config_list,
+    config_reset,
+    config_set,
+)
+from pwa_forge.commands.doctor import DoctorCommandError
+from pwa_forge.commands.doctor import run_doctor as run_doctor_impl
 from pwa_forge.commands.edit import EditCommandError
 from pwa_forge.commands.edit import edit_app as edit_app_impl
 from pwa_forge.commands.handler import (
@@ -86,6 +96,70 @@ def version() -> None:
     """Show the installed package version."""
     package_version = _read_package_version()
     click.echo(package_version)
+
+
+@cli.command()
+@click.option(
+    "--shell",
+    type=click.Choice(["bash", "zsh", "fish"]),
+    required=True,
+    help="Shell type for completion script",
+)
+@click.pass_context
+def completion(ctx: click.Context, shell: str) -> None:
+    """Show instructions for enabling shell completion.
+
+    This command provides instructions on how to enable shell completion
+    for pwa-forge in your shell.
+
+    Click provides built-in completion support. Follow the instructions
+    for your shell to enable tab completion for all pwa-forge commands.
+
+    Examples:
+        pwa-forge completion --shell bash
+        pwa-forge completion --shell zsh
+        pwa-forge completion --shell fish
+    """
+    no_color = ctx.obj.get("no_color", False)
+
+    if not no_color:
+        click.secho(f"\n━━━ Shell Completion for {shell.title()} ━━━\n", fg="blue", bold=True)
+    else:
+        click.echo(f"\n━━━ Shell Completion for {shell.title()} ━━━\n")
+
+    if shell == "bash":
+        click.echo("Add this line to your ~/.bashrc:")
+        if not no_color:
+            click.secho('    eval "$(_PWA_FORGE_COMPLETE=bash_source pwa-forge)"', fg="green")
+        else:
+            click.echo('    eval "$(_PWA_FORGE_COMPLETE=bash_source pwa-forge)"')
+        click.echo("\nThen restart your shell or run:")
+        click.echo("    source ~/.bashrc")
+
+    elif shell == "zsh":
+        click.echo("Add this line to your ~/.zshrc:")
+        if not no_color:
+            click.secho('    eval "$(_PWA_FORGE_COMPLETE=zsh_source pwa-forge)"', fg="green")
+        else:
+            click.echo('    eval "$(_PWA_FORGE_COMPLETE=zsh_source pwa-forge)"')
+        click.echo("\nThen restart your shell or run:")
+        click.echo("    source ~/.zshrc")
+
+    elif shell == "fish":
+        click.echo("Save this to ~/.config/fish/completions/pwa-forge.fish:")
+        if not no_color:
+            click.secho("    _PWA_FORGE_COMPLETE=fish_source pwa-forge | source", fg="green")
+        else:
+            click.echo("    _PWA_FORGE_COMPLETE=fish_source pwa-forge | source")
+        click.echo("\nOr run this command:")
+        click.echo("    _PWA_FORGE_COMPLETE=fish_source pwa-forge > ~/.config/fish/completions/pwa-forge.fish")
+
+    click.echo("\n" + "─" * 60)
+    click.echo("\nAfter enabling completion, you can use tab to autocomplete:")
+    click.echo("  - Command names (add, remove, list, etc.)")
+    click.echo("  - Option names (--name, --browser, etc.)")
+    click.echo("  - Option values for choices (browsers, formats, etc.)")
+    click.echo()
 
 
 # PWA Management Commands
@@ -492,34 +566,169 @@ def sync(ctx: click.Context, id: str, dry_run: bool) -> None:  # noqa: A002
 # Configuration Management
 @cli.group()
 def config() -> None:
-    """Manage global configuration."""
+    """Manage global configuration.
+
+    Examples:
+        pwa-forge config list
+        pwa-forge config get default_browser
+        pwa-forge config set default_browser firefox
+        pwa-forge config reset
+    """
 
 
 @config.command(name="get")
 @click.argument("key")
-def config_get(key: str) -> None:
-    """Display configuration value for KEY."""
-    click.echo("Config get command - Not yet implemented")
+@click.pass_context
+def config_get_cmd(ctx: click.Context, key: str) -> None:
+    """Display configuration value for KEY.
+
+    KEY can use dot notation to access nested values (e.g., browsers.chrome).
+
+    Examples:
+        pwa-forge config get default_browser
+        pwa-forge config get browsers.chrome
+        pwa-forge config get chrome_flags.enable
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        value = config_get(key, cfg)
+        click.echo(value)
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @config.command(name="set")
 @click.argument("key")
 @click.argument("value")
-def config_set(key: str, value: str) -> None:
-    """Set configuration KEY to VALUE."""
-    click.echo("Config set command - Not yet implemented")
+@click.pass_context
+def config_set_cmd(ctx: click.Context, key: str, value: str) -> None:
+    """Set configuration KEY to VALUE.
+
+    KEY can use dot notation to access nested values.
+    VALUE will be parsed to the correct type (string, number, boolean, list).
+
+    Examples:
+        pwa-forge config set default_browser firefox
+        pwa-forge config set browsers.chrome /usr/bin/google-chrome
+        pwa-forge config set log_level debug
+        pwa-forge config set chrome_flags.enable "[WebUIDarkMode,WebUIEnableLazyLoading]"
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        config_set(key, value, cfg)
+
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✓ Configuration updated: {key} = {value}", fg="green")
+        else:
+            click.echo(f"✓ Configuration updated: {key} = {value}")
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @config.command(name="list")
-def config_list() -> None:
-    """Show all configuration values."""
-    click.echo("Config list command - Not yet implemented")
+@click.pass_context
+def config_list_cmd(ctx: click.Context) -> None:
+    """Show all configuration values.
+
+    Displays the current configuration in YAML format.
+
+    Example:
+        pwa-forge config list
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        import yaml
+
+        config_data = config_list(cfg)
+        output = yaml.safe_dump(config_data, default_flow_style=False, sort_keys=False)
+
+        if not ctx.obj.get("no_color"):
+            click.secho("Current configuration:", fg="blue", bold=True)
+        else:
+            click.echo("Current configuration:")
+
+        click.echo(output)
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @config.command(name="reset")
-def config_reset() -> None:
-    """Reset configuration to defaults."""
-    click.echo("Config reset command - Not yet implemented")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.pass_context
+def config_reset_cmd(ctx: click.Context, yes: bool) -> None:
+    """Reset configuration to defaults.
+
+    This will delete the user configuration file and revert to default settings.
+
+    Example:
+        pwa-forge config reset
+        pwa-forge config reset --yes
+    """
+    cfg = ctx.obj["config"]
+
+    if not yes and not click.confirm("Are you sure you want to reset configuration to defaults?"):
+        click.echo("Cancelled.")
+        ctx.exit(0)
+
+    try:
+        config_reset(cfg)
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Configuration reset to defaults", fg="green")
+        else:
+            click.echo("✓ Configuration reset to defaults")
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@config.command(name="edit")
+@click.pass_context
+def config_edit_cmd(ctx: click.Context) -> None:
+    """Open configuration file in $EDITOR.
+
+    Opens the user configuration file in your preferred text editor.
+    If the file doesn't exist, it will be created with default values.
+
+    The file is validated after editing. If validation fails, the original
+    file is restored from backup.
+
+    Example:
+        pwa-forge config edit
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        config_edit(cfg)
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Configuration file edited successfully", fg="green")
+        else:
+            click.echo("✓ Configuration file edited successfully")
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 # URL Handler System Commands
@@ -683,6 +892,129 @@ def generate_userscript(
             click.echo("\n[DRY-RUN] No changes were made.")
 
     except UserscriptCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@cli.command()
+@click.pass_context
+def doctor(ctx: click.Context) -> None:
+    """Check system requirements and configuration.
+
+    Performs diagnostic checks to verify that pwa-forge can function correctly
+    on your system. This includes checking for required dependencies, browser
+    availability, file permissions, and configuration validity.
+
+    Checks performed:
+    - Python version (>= 3.10 required)
+    - Browser executables (chrome, chromium, firefox, edge)
+    - XDG utilities (xdg-mime, update-desktop-database)
+    - Directory write permissions
+    - Desktop environment detection
+    - Config file validity
+    - Registry file validity
+    - Optional dependencies (Playwright)
+
+    Example:
+        pwa-forge doctor
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = run_doctor_impl(config)
+
+        no_color = ctx.obj.get("no_color", False)
+
+        # Display header
+        if not no_color:
+            click.secho("\n━━━ System Diagnostics ━━━\n", fg="blue", bold=True)
+        else:
+            click.echo("\n━━━ System Diagnostics ━━━\n")
+
+        # Display checks
+        for check in result["checks"]:
+            status = check["status"]
+            name = check["name"]
+            message = check["message"]
+            details = check.get("details", "")
+
+            # Choose symbol and color based on status
+            if status == "PASS":
+                symbol = "✓"
+                color = "green"
+            elif status == "FAIL":
+                symbol = "✗"
+                color = "red"
+            elif status == "WARNING":
+                symbol = "⚠"
+                color = "yellow"
+            elif status == "INFO":
+                symbol = "ℹ"
+                color = "blue"
+            else:
+                symbol = "•"
+                color = None
+
+            # Format output
+            if not no_color and color:
+                click.secho(f"  {symbol} {name}: {message}", fg=color)
+            else:
+                click.echo(f"  {symbol} {name}: {message}")
+
+            # Show details if provided
+            if details and status in ["FAIL", "WARNING"]:
+                click.echo(f"      → {details}")
+
+        # Display summary
+        if not no_color:
+            click.secho("\n━━━ Summary ━━━", fg="blue", bold=True)
+        else:
+            click.echo("\n━━━ Summary ━━━")
+
+        total = result["passed"] + result["failed"] + result["warnings"]
+
+        if result["passed"] > 0:
+            if not no_color:
+                click.secho(f"  ✓ Passed: {result['passed']}/{total}", fg="green")
+            else:
+                click.echo(f"  ✓ Passed: {result['passed']}/{total}")
+
+        if result["warnings"] > 0:
+            if not no_color:
+                click.secho(f"  ⚠ Warnings: {result['warnings']}/{total}", fg="yellow")
+            else:
+                click.echo(f"  ⚠ Warnings: {result['warnings']}/{total}")
+
+        if result["failed"] > 0:
+            if not no_color:
+                click.secho(f"  ✗ Failed: {result['failed']}/{total}", fg="red")
+            else:
+                click.echo(f"  ✗ Failed: {result['failed']}/{total}")
+
+        click.echo()
+
+        # Exit with appropriate code
+        if result["failed"] > 0:
+            if not no_color:
+                click.secho("Some checks failed. Please address the issues above.", fg="red", err=True)
+            else:
+                click.echo("Some checks failed. Please address the issues above.", err=True)
+            ctx.exit(1)
+        elif result["warnings"] > 0:
+            if not no_color:
+                click.secho("All critical checks passed with some warnings.", fg="yellow")
+            else:
+                click.echo("All critical checks passed with some warnings.")
+        else:
+            if not no_color:
+                click.secho("✓ All checks passed! Your system is ready.", fg="green")
+            else:
+                click.echo("✓ All checks passed! Your system is ready.")
+
+    except DoctorCommandError as e:
         if not ctx.obj.get("no_color"):
             click.secho(f"✗ Error: {e}", fg="red", err=True)
         else:
