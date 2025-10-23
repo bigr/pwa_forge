@@ -286,6 +286,14 @@ def _get_browser_executable(browser: str, config: Config) -> Path:
         "edge": ["/usr/bin/microsoft-edge-stable", "/usr/bin/microsoft-edge"],
     }
 
+    # Map browser names to common executable names for shutil.which()
+    browser_executables = {
+        "chrome": ["google-chrome-stable", "google-chrome"],
+        "chromium": ["chromium-browser", "chromium"],
+        "firefox": ["firefox"],
+        "edge": ["microsoft-edge-stable", "microsoft-edge"],
+    }
+
     # Try configured path first
     if hasattr(config.browsers, browser):
         browser_path = getattr(config.browsers, browser)
@@ -299,6 +307,13 @@ def _get_browser_executable(browser: str, config: Config) -> Path:
         if path.exists():
             logger.debug(f"Found browser at: {path}")
             return path
+
+    # Fallback: search in PATH using shutil.which()
+    for executable_name in browser_executables.get(browser, []):
+        which_path = shutil.which(executable_name)
+        if which_path:
+            logger.debug(f"Found browser in PATH: {which_path}")
+            return Path(which_path)
 
     raise AddCommandError(f"Browser '{browser}' not found. Please install it or specify the path in config.")
 
