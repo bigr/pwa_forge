@@ -1,30 +1,29 @@
 # Implementation Specification: PWA Forge
 
-## Implementation Status Summary (2025-10-22)
+## Implementation Status Summary (2025-10-23)
 
-**Completed Phases (Phases 1-4):** ✅
+**Completed Phases (Phases 1-5):** ✅
 - ✅ Phase 1: Core Infrastructure (logging, config, templates, paths)
 - ✅ Phase 2: Basic PWA Management (add, list, remove commands)
 - ✅ Phase 3: Browser Integration Test Framework (Playwright tests)
 - ✅ Phase 4: URL Handler System (generate-handler, install-handler, generate-userscript)
+- ✅ Phase 5: Validation & Audit (audit, sync, edit commands)
 
 **Current Status:**
-- **Test Coverage:** Comprehensive unit tests, integration tests, and Playwright browser tests
+- **Test Coverage:** Comprehensive unit tests (236 tests), integration tests, and Playwright browser tests
 - **CI/CD:** GitHub Actions with linting, type checking, and multi-Python testing
 - **Code Quality:** Pre-commit hooks, mypy strict typing, ruff linting
 - **Documentation:** README, TESTING.md complete; USAGE.md and TROUBLESHOOTING.md pending
+- **Commands:** 11 commands fully implemented (add, list, remove, audit, sync, edit, generate-handler, install-handler, generate-userscript, config group, version)
 
-**Remaining Work (Phases 5-7):**
-- 🚧 **Phase 5:** audit, sync, edit commands (HIGH PRIORITY)
-- 🚧 **Phase 6:** E2E test suite for full workflow validation
-- 🚧 **Phase 7:** doctor command, config commands, shell completion, documentation
+**Remaining Work (Phases 6-7):**
+- 🚧 **Phase 6:** E2E test suite for full workflow validation (partially complete)
+- 🚧 **Phase 7:** doctor command, config commands implementation, shell completion, documentation
 
-**Estimated Completion:** ~3-5 LLM-assisted coding sessions
-- Session 1: Audit + Sync commands (4-6 hours)
-- Session 2: Edit + Config commands (3-4 hours)
-- Session 3: Doctor command + E2E tests (4-5 hours)
-- Session 4: Documentation + Shell completion (2-3 hours)
-- Session 5: Final polish and release (1-2 hours)
+**Estimated Completion:** ~2-3 LLM-assisted coding sessions
+- Session 1: Config commands + Doctor command (3-4 hours)
+- Session 2: Documentation (USAGE.md, TROUBLESHOOTING.md) (2-3 hours)
+- Session 3: Shell completion + Final polish and release (2-3 hours)
 
 See **LLM Implementation Guide** section below for detailed, actionable instructions.
 
@@ -1001,7 +1000,7 @@ The following must work reliably:
 
 ## Implementation Phases
 
-### Phase 1: Core Infrastructure
+### Phase 1: Core Infrastructure ✅ COMPLETED
 - [X] Project scaffolding and package structure
 - [X] CLI framework (Click) with basic commands
 - [X] Configuration system (YAML loading)
@@ -1009,7 +1008,7 @@ The following must work reliably:
 - [X] Logging setup
 - [X] Path utilities
 
-### Phase 2: Basic PWA Management
+### Phase 2: Basic PWA Management ✅ COMPLETED
 - [X] `add` command implementation
   - [X] URL validation
   - [X] Profile directory creation
@@ -1050,7 +1049,7 @@ The following must work reliably:
   - [X] Publish HTML reports as build artifacts
   - [ ] Optional: run Jest unit suite in Node.js workflow for rapid feedback
 
-### Phase 4: URL Handler System
+### Phase 4: URL Handler System ✅ COMPLETED
 - [X] `generate-handler` command
   - [X] Template rendering
   - [X] URL decoding logic
@@ -1065,34 +1064,34 @@ The following must work reliably:
   - [X] In-scope host configuration
   - [X] Instructions for manual installation
 
-### Phase 5: Validation & Audit (NEXT PRIORITY)
-- [ ] `audit` command implementation
-  - [ ] File existence checks (desktop, wrapper, manifest, profile, icon)
-  - [ ] Desktop file validation (parse INI, check required keys)
-  - [ ] Wrapper script validation (executable bit, valid bash syntax)
-  - [ ] Profile directory validation (exists, is directory, has permissions)
-  - [ ] Handler registration check (query xdg-mime for scheme handlers)
-  - [ ] Browser executable check (exists and is executable)
-  - [ ] Fix mode (--fix flag): regenerate missing/broken files using sync logic
-  - [ ] Report format: table with PASS/FAIL, error messages, and suggestions
-  - [ ] Exit code: 0 if all pass, 1 if any fail
-- [ ] `sync` command
-  - [ ] Load manifest YAML file
-  - [ ] Validate manifest schema (using validation.py)
-  - [ ] Regenerate wrapper script from template
-  - [ ] Regenerate desktop file from template
-  - [ ] Update file permissions (wrapper: 0755)
-  - [ ] Detect and warn about manual changes (compare timestamps)
-  - [ ] Update modified timestamp in manifest
-- [ ] `edit` command
-  - [ ] Resolve app ID to manifest path using registry
-  - [ ] Validate $EDITOR environment variable is set
-  - [ ] Open manifest in $EDITOR (subprocess.run with wait)
-  - [ ] Validate YAML after edit (syntax and schema)
-  - [ ] Offer to sync if validation passes
-  - [ ] Rollback to backup if validation fails
+### Phase 5: Validation & Audit ✅ COMPLETED
+- [X] `audit` command implementation
+  - [X] File existence checks (desktop, wrapper, manifest, profile, icon)
+  - [X] Desktop file validation (parse INI, check required keys)
+  - [X] Wrapper script validation (executable bit, valid bash syntax)
+  - [X] Profile directory validation (exists, is directory, has permissions)
+  - [X] Handler registration check (query xdg-mime for scheme handlers)
+  - [X] Browser executable check (exists and is executable)
+  - [X] Fix mode (--fix flag): regenerate missing/broken files using sync logic
+  - [X] Report format: table with PASS/FAIL, error messages, and suggestions
+  - [X] Exit code: 0 if all pass, 1 if any fail
+- [X] `sync` command
+  - [X] Load manifest YAML file
+  - [X] Validate manifest schema (using validation.py)
+  - [X] Regenerate wrapper script from template
+  - [X] Regenerate desktop file from template
+  - [X] Update file permissions (wrapper: 0755)
+  - [X] Detect and warn about manual changes (compare timestamps)
+  - [X] Update modified timestamp in manifest
+- [X] `edit` command
+  - [X] Resolve app ID to manifest path using registry
+  - [X] Validate $EDITOR environment variable is set
+  - [X] Open manifest in $EDITOR (subprocess.run with wait)
+  - [X] Validate YAML after edit (syntax and schema)
+  - [X] Offer to sync if validation passes
+  - [X] Rollback to backup if validation fails
 
-### Phase 6: Testing & Polish
+### Phase 6: Testing & Polish (NEXT PRIORITY)
 - [X] Unit tests (DONE - comprehensive coverage)
   - [X] Template rendering tests
   - [X] Configuration loading tests
