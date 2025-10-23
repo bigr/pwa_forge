@@ -1,5 +1,35 @@
 # Implementation Specification: PWA Forge
 
+## Implementation Status Summary (2025-10-22)
+
+**Completed Phases (Phases 1-4):** ✅
+- ✅ Phase 1: Core Infrastructure (logging, config, templates, paths)
+- ✅ Phase 2: Basic PWA Management (add, list, remove commands)
+- ✅ Phase 3: Browser Integration Test Framework (Playwright tests)
+- ✅ Phase 4: URL Handler System (generate-handler, install-handler, generate-userscript)
+
+**Current Status:**
+- **Test Coverage:** Comprehensive unit tests, integration tests, and Playwright browser tests
+- **CI/CD:** GitHub Actions with linting, type checking, and multi-Python testing
+- **Code Quality:** Pre-commit hooks, mypy strict typing, ruff linting
+- **Documentation:** README, TESTING.md complete; USAGE.md and TROUBLESHOOTING.md pending
+
+**Remaining Work (Phases 5-7):**
+- 🚧 **Phase 5:** audit, sync, edit commands (HIGH PRIORITY)
+- 🚧 **Phase 6:** E2E test suite for full workflow validation
+- 🚧 **Phase 7:** doctor command, config commands, shell completion, documentation
+
+**Estimated Completion:** ~3-5 LLM-assisted coding sessions
+- Session 1: Audit + Sync commands (4-6 hours)
+- Session 2: Edit + Config commands (3-4 hours)
+- Session 3: Doctor command + E2E tests (4-5 hours)
+- Session 4: Documentation + Shell completion (2-3 hours)
+- Session 5: Final polish and release (1-2 hours)
+
+See **LLM Implementation Guide** section below for detailed, actionable instructions.
+
+---
+
 ## Project Overview
 
 **pwa-forge** is a Python-based CLI tool for managing Progressive Web Apps (PWAs) as standalone applications on Linux desktop environments (primarily KDE/Plasma, with GNOME compatibility). The tool automates the creation of isolated browser instances with custom launchers, handles external link redirection to system browsers, and provides comprehensive PWA lifecycle management.
@@ -1035,63 +1065,435 @@ The following must work reliably:
   - [X] In-scope host configuration
   - [X] Instructions for manual installation
 
-### Phase 5: Validation & Audit
+### Phase 5: Validation & Audit (NEXT PRIORITY)
 - [ ] `audit` command implementation
-  - [ ] File existence checks
-  - [ ] Desktop file validation
-  - [ ] Wrapper script validation
-  - [ ] Profile directory validation
-  - [ ] Handler registration check
-  - [ ] Browser executable check
-  - [ ] Fix mode (--fix flag)
+  - [ ] File existence checks (desktop, wrapper, manifest, profile, icon)
+  - [ ] Desktop file validation (parse INI, check required keys)
+  - [ ] Wrapper script validation (executable bit, valid bash syntax)
+  - [ ] Profile directory validation (exists, is directory, has permissions)
+  - [ ] Handler registration check (query xdg-mime for scheme handlers)
+  - [ ] Browser executable check (exists and is executable)
+  - [ ] Fix mode (--fix flag): regenerate missing/broken files using sync logic
+  - [ ] Report format: table with PASS/FAIL, error messages, and suggestions
+  - [ ] Exit code: 0 if all pass, 1 if any fail
 - [ ] `sync` command
-  - [ ] Regenerate artifacts from manifest
-  - [ ] Detect and warn about manual changes
+  - [ ] Load manifest YAML file
+  - [ ] Validate manifest schema (using validation.py)
+  - [ ] Regenerate wrapper script from template
+  - [ ] Regenerate desktop file from template
+  - [ ] Update file permissions (wrapper: 0755)
+  - [ ] Detect and warn about manual changes (compare timestamps)
+  - [ ] Update modified timestamp in manifest
 - [ ] `edit` command
-  - [ ] Open manifest in $EDITOR
-  - [ ] Validate YAML after edit
-  - [ ] Offer to sync
+  - [ ] Resolve app ID to manifest path using registry
+  - [ ] Validate $EDITOR environment variable is set
+  - [ ] Open manifest in $EDITOR (subprocess.run with wait)
+  - [ ] Validate YAML after edit (syntax and schema)
+  - [ ] Offer to sync if validation passes
+  - [ ] Rollback to backup if validation fails
 
 ### Phase 6: Testing & Polish
-- [ ] Unit tests
-  - [ ] Template rendering tests
-  - [ ] Configuration loading tests
-  - [ ] Path utilities tests
-  - [ ] Validation logic tests
-  - [ ] Registry operations tests
-- [ ] Integration tests
-  - [ ] Add/list/remove cycle
-  - [ ] Handler generation and registration
-  - [ ] Audit with various configurations
-  - [ ] Dry-run mode
-- [ ] Documentation
-  - [ ] README with quick start
-  - [ ] USAGE guide with examples
+- [X] Unit tests (DONE - comprehensive coverage)
+  - [X] Template rendering tests
+  - [X] Configuration loading tests
+  - [X] Path utilities tests
+  - [X] Validation logic tests
+  - [X] Registry operations tests
+  - [X] Handler and userscript generation tests
+- [X] Integration tests (DONE - lifecycle covered)
+  - [X] Add/list/remove cycle
+  - [X] Handler generation and registration workflow
+  - [X] Dry-run mode
+- [X] Playwright browser tests (DONE - userscript and handler verified)
+  - [X] External link rewriting
+  - [X] window.open() patching
+  - [X] Handler script URL decoding
+- [ ] E2E System Tests (MISSING - needs automation)
+  - [ ] Test add command with actual browser detection
+  - [ ] Test XDG desktop database update (mock xdg-utils)
+  - [ ] Test handler registration with xdg-mime (mock)
+  - [ ] Test audit command detects real file issues
+  - [ ] Test sync regenerates valid artifacts
+  - [ ] Test edit command with temporary EDITOR
+  - [ ] Test config commands (get/set/list/reset)
+  - [ ] Test doctor command system checks
+- [ ] Documentation (PARTIALLY DONE)
+  - [X] README with quick start
+  - [X] TESTING.md with comprehensive guide
+  - [ ] USAGE.md with detailed examples
+  - [ ] TROUBLESHOOTING.md with common issues
   - [ ] Inline help text refinement
-  - [ ] Troubleshooting guide
-- [ ] Code quality
-  - [ ] Linting with ruff
-  - [ ] Type hints with mypy
-  - [ ] Code formatting with black
-  - [ ] 70%+ test coverage
+- [X] Code quality (DONE)
+  - [X] Linting with ruff
+  - [X] Type hints with mypy
+  - [X] Code formatting with ruff format
+  - [X] Pre-commit hooks
+  - [ ] Verify 70%+ test coverage (run coverage report)
 
-### Phase 7: Release Preparation
-- [ ] Package for PyPI
-  - [ ] setup.py configuration
-  - [ ] version management
-  - [ ] dependencies declaration
+### Phase 7: Release Preparation & Polish
+- [X] Package for PyPI (DONE)
+  - [X] pyproject.toml configuration
+  - [X] version management (__version__ in __init__.py)
+  - [X] dependencies declaration
+  - [X] Entry point script (pwa-forge command)
 - [ ] Shell completion scripts
-  - [ ] Bash completion
-  - [ ] Zsh completion
+  - [ ] Bash completion (use click.shell_completion)
+  - [ ] Zsh completion (use click.shell_completion)
+  - [ ] Fish completion (use click.shell_completion)
+  - [ ] Add --install-completion and --show-completion flags to CLI
 - [ ] `doctor` command
-  - [ ] System requirements check
-  - [ ] Dependency detection
-  - [ ] Configuration validation
+  - [ ] Check Python version (>= 3.10)
+  - [ ] Detect available browsers (chrome, chromium, firefox, edge)
+  - [ ] Check xdg-utils presence (xdg-mime, update-desktop-database)
+  - [ ] Verify directory permissions (can write to ~/.local/share, ~/.local/bin)
+  - [ ] Check desktop environment (detect KDE/GNOME/other)
+  - [ ] Validate config file if exists
+  - [ ] Display summary table with PASS/FAIL/WARNING
+- [ ] Config commands implementation
+  - [ ] config get: read key from config YAML
+  - [ ] config set: update key in config YAML, validate value
+  - [ ] config list: display all config values formatted
+  - [ ] config reset: restore default config.yaml
+  - [ ] config edit: open in $EDITOR with validation
 - [ ] Error handling polish
-  - [ ] Consistent error codes
-  - [ ] Actionable error messages
-  - [ ] Graceful degradation
-- [ ] Release notes and changelog
+  - [ ] Define error code enum (1-10 for different error types)
+  - [ ] Ensure all commands return appropriate exit codes
+  - [ ] Review all error messages for actionability
+  - [ ] Add suggestions to error messages (e.g., "Run: pwa-forge doctor")
+- [ ] Documentation
+  - [ ] Write USAGE.md with all commands documented
+  - [ ] Write TROUBLESHOOTING.md with FAQ
+  - [ ] Add CONTRIBUTING.md with development guide
+  - [ ] Update README badges (CI status, coverage)
+- [ ] Release process
+  - [ ] Create CHANGELOG.md
+  - [ ] Tag version 0.1.0
+  - [ ] Build and test wheel
+  - [ ] Publish to PyPI
+
+---
+
+## LLM Implementation Guide
+
+This section provides detailed, actionable instructions for implementing remaining features using LLM-assisted coding.
+
+### Implementation Order (Priority)
+
+1. **Phase 5.1: Audit Command** (High Priority - enables validation)
+2. **Phase 5.2: Sync Command** (High Priority - required by audit --fix)
+3. **Phase 5.3: Edit Command** (Medium Priority - UX improvement)
+4. **Phase 7.1: Config Commands** (Medium Priority - configuration management)
+5. **Phase 7.2: Doctor Command** (High Priority - system diagnostics)
+6. **Phase 7.3: Shell Completion** (Low Priority - convenience)
+7. **Phase 6: E2E Test Suite** (High Priority - automated validation)
+8. **Phase 7.4: Documentation** (Medium Priority - user-facing)
+
+### Phase 5.1: Audit Command Implementation
+
+**File to create:** `src/pwa_forge/commands/audit.py`
+
+**Function signature:**
+```python
+def audit_app(
+    app_id: str | None,
+    config: Config,
+    fix: bool = False,
+    open_test_page: bool = False,
+) -> dict[str, Any]:
+    """
+    Audit PWA configuration and optionally fix issues.
+
+    Args:
+        app_id: Application ID (None = audit all apps)
+        config: Config instance
+        fix: Attempt to repair broken configurations
+        open_test_page: Launch PWA with test page
+
+    Returns:
+        Dict with audit results: {
+            "audited_apps": int,
+            "passed": int,
+            "failed": int,
+            "fixed": int,
+            "results": [{"id": str, "checks": [{"name": str, "status": str, "message": str}]}]
+        }
+    """
+```
+
+**Checks to implement:**
+1. **Manifest exists**: `manifest_path.exists()`
+2. **Manifest valid YAML**: `yaml.safe_load()` doesn't raise
+3. **Desktop file exists**: Check path from registry
+4. **Desktop file valid**: Parse with configparser, check [Desktop Entry] section
+5. **Wrapper script exists**: Check path from registry
+6. **Wrapper script executable**: `path.stat().st_mode & 0o111 != 0`
+7. **Profile directory exists**: Check from manifest
+8. **Browser executable exists**: Use existing browser detection logic
+9. **Icon exists** (if specified): Check icon path from manifest
+10. **Handler registered** (if userscript configured): Query xdg-mime
+
+**Fix mode logic:**
+- Use sync command logic to regenerate wrapper and desktop files
+- Update file permissions if incorrect
+- Do NOT fix missing manifest (fatal error)
+- Do NOT create missing profile directory (user data)
+
+**Output format:**
+- Table with columns: Check | Status | Message
+- Color-coded: green ✓ for PASS, red ✗ for FAIL, yellow ⚠ for WARNING
+- Summary: "X/Y checks passed"
+- Exit code: 0 if all pass, 1 if any fail
+
+**Integration with CLI:**
+- Update `cli.py` audit command to call `audit_app()`
+- Add error handling with AuditCommandError exception
+
+**Tests to write:** `tests/unit/test_audit.py`
+- Test all individual checks with mocked file system
+- Test fix mode regenerates files
+- Test audit all apps
+- Test exit codes
+
+### Phase 5.2: Sync Command Implementation
+
+**File to create:** `src/pwa_forge/commands/sync.py`
+
+**Function signature:**
+```python
+def sync_app(
+    app_id: str,
+    config: Config,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """
+    Regenerate all artifacts from manifest file.
+
+    Args:
+        app_id: Application ID
+        config: Config instance
+        dry_run: Show what would be regenerated
+
+    Returns:
+        Dict with sync results: {
+            "id": str,
+            "regenerated": ["wrapper", "desktop"],
+            "warnings": [str],
+        }
+    """
+```
+
+**Implementation steps:**
+1. Load manifest from `config.apps_dir / app_id / "manifest.yaml"`
+2. Validate manifest schema (reuse `validation.validate_manifest_dict()`)
+3. Check if wrapper/desktop files have been manually edited (compare mtime with manifest modified time)
+4. Warn about manual changes
+5. Regenerate wrapper script using template engine
+6. Regenerate desktop file using template engine
+7. Set file permissions (wrapper: 0755)
+8. Update manifest modified timestamp
+9. Update registry if paths changed
+
+**Integration with CLI:**
+- Update `cli.py` sync command to call `sync_app()`
+- Add error handling with SyncCommandError exception
+
+**Tests to write:** `tests/unit/test_sync.py`
+- Test regenerates wrapper correctly
+- Test regenerates desktop file correctly
+- Test dry-run mode
+- Test warning on manual changes
+- Test updates manifest timestamp
+
+### Phase 5.3: Edit Command Implementation
+
+**File to create:** `src/pwa_forge/commands/edit.py`
+
+**Function signature:**
+```python
+def edit_app(
+    app_id: str,
+    config: Config,
+    auto_sync: bool = True,
+) -> dict[str, Any]:
+    """
+    Open manifest in $EDITOR and optionally sync after edit.
+
+    Args:
+        app_id: Application ID
+        config: Config instance
+        auto_sync: Automatically sync after successful edit
+
+    Returns:
+        Dict with edit results: {
+            "id": str,
+            "edited": bool,
+            "synced": bool,
+            "validation_errors": [str] | None,
+        }
+    """
+```
+
+**Implementation steps:**
+1. Resolve app ID to manifest path using registry
+2. Check $EDITOR environment variable (fallback: vi, nano, then error)
+3. Create backup: `manifest.yaml.bak`
+4. Open manifest in editor: `subprocess.run([editor, manifest_path])`
+5. Validate YAML syntax after edit
+6. Validate manifest schema
+7. If validation fails: restore backup, show errors, exit
+8. If validation passes and auto_sync: call sync_app()
+9. Remove backup on success
+
+**Integration with CLI:**
+- Update `cli.py` edit command to call `edit_app()`
+- Add --no-sync flag to skip auto-sync
+- Add error handling with EditCommandError exception
+
+**Tests to write:** `tests/unit/test_edit.py`
+- Mock $EDITOR and subprocess.run
+- Test successful edit and sync
+- Test validation failure restores backup
+- Test missing $EDITOR error
+- Test auto-sync flag
+
+### Phase 7.1: Config Commands Implementation
+
+**File to create:** `src/pwa_forge/commands/config_cmd.py`
+
+**Functions to implement:**
+
+```python
+def config_get(key: str, config: Config) -> str:
+    """Get config value by key (supports dot notation: browsers.chrome)."""
+
+def config_set(key: str, value: str, config: Config) -> None:
+    """Set config value by key, validate, and save."""
+
+def config_list(config: Config) -> dict[str, Any]:
+    """Return all config values as dict."""
+
+def config_reset(config: Config) -> None:
+    """Reset config to defaults."""
+
+def config_edit(config: Config) -> None:
+    """Open config file in $EDITOR."""
+```
+
+**Implementation details:**
+- Dot notation parsing: `key.split('.')` to navigate nested dicts
+- Validation: check value types match schema
+- Save: write YAML to config file path
+- Reset: delete user config file (falls back to defaults)
+
+**Integration with CLI:**
+- Update `cli.py` config subcommands to call these functions
+- Format output nicely (YAML or key=value pairs)
+
+**Tests to write:** `tests/unit/test_config_cmd.py`
+- Test get with nested keys
+- Test set updates and saves
+- Test list returns all values
+- Test reset deletes file
+- Test edit opens $EDITOR
+
+### Phase 7.2: Doctor Command Implementation
+
+**File to create:** `src/pwa_forge/commands/doctor.py`
+
+**Function signature:**
+```python
+def run_doctor(config: Config) -> dict[str, Any]:
+    """
+    Check system requirements and configuration.
+
+    Returns:
+        Dict with check results: {
+            "checks": [{"name": str, "status": str, "message": str}],
+            "passed": int,
+            "failed": int,
+            "warnings": int,
+        }
+    """
+```
+
+**Checks to implement:**
+1. Python version >= 3.10
+2. Browsers available (chrome, chromium, firefox, edge)
+3. xdg-utils commands (xdg-mime, update-desktop-database)
+4. Directory write permissions (~/.local/share, ~/.local/bin)
+5. Desktop environment detection ($XDG_CURRENT_DESKTOP)
+6. Config file valid (if exists)
+7. Registry file valid (if exists)
+8. Playwright installed (optional dependency)
+
+**Output format:**
+- Table: Check | Status | Message
+- Status: PASS (green ✓), FAIL (red ✗), WARNING (yellow ⚠), INFO (blue ℹ)
+- Summary line: "X checks passed, Y failed, Z warnings"
+
+**Integration with CLI:**
+- Add doctor command to cli.py
+- Exit code: 0 if no failures, 1 if any fail
+
+**Tests to write:** `tests/unit/test_doctor.py`
+- Mock all system checks
+- Test each check passes/fails appropriately
+- Test output format
+
+### E2E Testing Strategy
+
+**Goal:** Automated tests that verify the full system without manual intervention.
+
+**Approach:** Mock external system calls (xdg-utils, subprocess) but test real file operations.
+
+**File to create:** `tests/e2e/test_full_workflow.py`
+
+**Test scenarios:**
+
+1. **Full PWA lifecycle with real files:**
+   - Create temp directories for all paths
+   - Run add command (real file creation)
+   - Verify all files exist with correct content
+   - Run list command, verify output
+   - Run audit command, verify PASS
+   - Manually corrupt a file
+   - Run audit, verify FAIL
+   - Run audit --fix, verify files repaired
+   - Run sync command
+   - Run edit command (mock $EDITOR to modify manifest)
+   - Run remove command
+   - Verify all files deleted
+
+2. **Handler workflow with mocked XDG:**
+   - Mock xdg-mime and update-desktop-database commands
+   - Generate handler script
+   - Install handler (verify desktop file created)
+   - Verify xdg-mime was called with correct args
+   - Test handler script execution with sample URL
+   - Uninstall handler
+   - Verify cleanup
+
+3. **Config management:**
+   - Test config get/set/list/reset
+   - Verify file persistence
+   - Test invalid value rejection
+
+4. **Doctor command:**
+   - Mock system state (browsers present/absent)
+   - Run doctor
+   - Verify accurate detection
+
+**Mock strategy:**
+- Use `unittest.mock.patch` for subprocess calls
+- Use `pytest.MonkeyPatch` for environment variables
+- Use real filesystem operations in temp directories
+- Capture and verify mock call arguments
+
+**CI integration:**
+- Run E2E tests in GitHub Actions
+- Use isolated temp directories
+- Mock xdg-utils (not available in containers)
+- Fast execution (no actual browser launches)
 
 ---
 
