@@ -127,12 +127,12 @@ class TestSyncCommand:
         assert result.exit_code == 0
         assert "Regenerate all artifacts" in result.output
 
-    def test_sync_command_placeholder(self) -> None:
-        """Test sync command placeholder."""
+    def test_sync_command_requires_id(self) -> None:
+        """Test sync command requires an app ID."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["sync", "test-id"])
-        assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        result = runner.invoke(cli.cli, ["sync"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "Error" in result.output
 
 
 class TestConfigCommands:

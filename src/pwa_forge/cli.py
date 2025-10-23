@@ -20,6 +20,8 @@ from pwa_forge.commands.handler import (
 from pwa_forge.commands.list_apps import list_apps as list_apps_impl
 from pwa_forge.commands.remove import RemoveCommandError
 from pwa_forge.commands.remove import remove_app as remove_app_impl
+from pwa_forge.commands.sync import SyncCommandError
+from pwa_forge.commands.sync import sync_app as sync_app_impl
 from pwa_forge.commands.userscript import (
     UserscriptCommandError,
 )
@@ -256,13 +258,51 @@ def edit(ctx: click.Context, id: str) -> None:  # noqa: A002
 
 @cli.command()
 @click.argument("id")
+@click.option("--dry-run", is_flag=True, help="Show what would be regenerated")
 @click.pass_context
-def sync(ctx: click.Context, id: str) -> None:  # noqa: A002
+def sync(ctx: click.Context, id: str, dry_run: bool) -> None:  # noqa: A002
     """Regenerate all artifacts from the manifest file.
 
     ID is the application identifier or name.
+
+    Use this command after manually editing the manifest to regenerate
+    wrapper scripts and desktop files.
+
+    Example:
+        pwa-forge sync chatgpt
     """
-    click.echo("Sync command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = sync_app_impl(
+            app_id=id,
+            config=config,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✓ Synced successfully: {result['id']}", fg="green")
+        else:
+            click.echo(f"✓ Synced successfully: {result['id']}")
+
+        if result["regenerated"]:
+            click.echo(f"  Regenerated: {', '.join(result['regenerated'])}")
+
+        for warning in result["warnings"]:
+            if not ctx.obj.get("no_color"):
+                click.secho(f"  ⚠ {warning}", fg="yellow")
+            else:
+                click.echo(f"  ⚠ {warning}")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except SyncCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 # Configuration Management
