@@ -215,6 +215,33 @@ class TestConfigCommands:
         assert "reset" in result.output.lower()
 
 
+class TestCompletionCommand:
+    """Test shell completion command."""
+
+    def test_completion_bash(self) -> None:
+        """Test completion command for bash."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["completion", "--shell", "bash"])
+        assert result.exit_code == 0
+        assert "bash" in result.output.lower()
+        assert "bashrc" in result.output.lower()
+
+    def test_completion_zsh(self) -> None:
+        """Test completion command for zsh."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["completion", "--shell", "zsh"])
+        assert result.exit_code == 0
+        assert "zsh" in result.output.lower()
+        assert "zshrc" in result.output.lower()
+
+    def test_completion_fish(self) -> None:
+        """Test completion command for fish."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["completion", "--shell", "fish"])
+        assert result.exit_code == 0
+        assert "fish" in result.output.lower()
+
+
 class TestVerbosityOptions:
     """Test verbosity options."""
 

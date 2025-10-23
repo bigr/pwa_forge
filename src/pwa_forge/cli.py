@@ -98,6 +98,70 @@ def version() -> None:
     click.echo(package_version)
 
 
+@cli.command()
+@click.option(
+    "--shell",
+    type=click.Choice(["bash", "zsh", "fish"]),
+    required=True,
+    help="Shell type for completion script",
+)
+@click.pass_context
+def completion(ctx: click.Context, shell: str) -> None:
+    """Show instructions for enabling shell completion.
+
+    This command provides instructions on how to enable shell completion
+    for pwa-forge in your shell.
+
+    Click provides built-in completion support. Follow the instructions
+    for your shell to enable tab completion for all pwa-forge commands.
+
+    Examples:
+        pwa-forge completion --shell bash
+        pwa-forge completion --shell zsh
+        pwa-forge completion --shell fish
+    """
+    no_color = ctx.obj.get("no_color", False)
+
+    if not no_color:
+        click.secho(f"\n━━━ Shell Completion for {shell.title()} ━━━\n", fg="blue", bold=True)
+    else:
+        click.echo(f"\n━━━ Shell Completion for {shell.title()} ━━━\n")
+
+    if shell == "bash":
+        click.echo("Add this line to your ~/.bashrc:")
+        if not no_color:
+            click.secho('    eval "$(_PWA_FORGE_COMPLETE=bash_source pwa-forge)"', fg="green")
+        else:
+            click.echo('    eval "$(_PWA_FORGE_COMPLETE=bash_source pwa-forge)"')
+        click.echo("\nThen restart your shell or run:")
+        click.echo("    source ~/.bashrc")
+
+    elif shell == "zsh":
+        click.echo("Add this line to your ~/.zshrc:")
+        if not no_color:
+            click.secho('    eval "$(_PWA_FORGE_COMPLETE=zsh_source pwa-forge)"', fg="green")
+        else:
+            click.echo('    eval "$(_PWA_FORGE_COMPLETE=zsh_source pwa-forge)"')
+        click.echo("\nThen restart your shell or run:")
+        click.echo("    source ~/.zshrc")
+
+    elif shell == "fish":
+        click.echo("Save this to ~/.config/fish/completions/pwa-forge.fish:")
+        if not no_color:
+            click.secho("    _PWA_FORGE_COMPLETE=fish_source pwa-forge | source", fg="green")
+        else:
+            click.echo("    _PWA_FORGE_COMPLETE=fish_source pwa-forge | source")
+        click.echo("\nOr run this command:")
+        click.echo("    _PWA_FORGE_COMPLETE=fish_source pwa-forge > ~/.config/fish/completions/pwa-forge.fish")
+
+    click.echo("\n" + "─" * 60)
+    click.echo("\nAfter enabling completion, you can use tab to autocomplete:")
+    click.echo("  - Command names (add, remove, list, etc.)")
+    click.echo("  - Option names (--name, --browser, etc.)")
+    click.echo("  - Option values for choices (browsers, formats, etc.)")
+    click.echo()
+
+
 # PWA Management Commands
 @cli.command()
 @click.argument("url")
