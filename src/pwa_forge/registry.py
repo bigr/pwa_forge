@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
 import logging
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# Platform-specific imports for file locking
+if sys.platform == "win32":
+    import msvcrt
+else:
+    import fcntl
 
 
 class RegistryError(Exception):
@@ -47,17 +53,31 @@ class Registry:
     def _lock(self) -> Iterator[None]:
         """Acquire exclusive lock on registry file.
 
+        Uses platform-specific locking mechanisms:
+        - Unix/Linux/macOS: fcntl.flock
+        - Windows: msvcrt.locking
+
         Yields:
             None - context is locked for the duration of the block.
         """
         self._lock_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self._lock_path, "w") as lock_file:
             try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                if sys.platform == "win32":
+                    # Windows: lock the entire file
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                else:
+                    # Unix-like systems: use fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
                 logger.debug(f"Acquired lock on {self._lock_path}")
                 yield
             finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                if sys.platform == "win32":
+                    # Windows: unlock the file
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    # Unix-like systems: unlock
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
                 logger.debug(f"Released lock on {self._lock_path}")
 
     def _read(self) -> dict[str, Any]:
@@ -138,18 +158,34 @@ class Registry:
 
         app_id = app_data["id"]
 
-        # Check if app already exists
-        try:
-            self.get_app(app_id)
-            raise AppExistsError(f"PWA '{app_id}' already exists in registry")
-        except AppNotFoundError:
-            pass  # This is expected
+        # Atomic read-check-write within a single lock to prevent race conditions
+        with self._lock():
+            # Read current registry
+            if not self.registry_path.exists():
+                data: dict[str, Any] = {"version": 1, "apps": [], "handlers": []}
+            else:
+                try:
+                    content = self.registry_path.read_text()
+                    data = json.loads(content)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in registry file: {e}")
+                    raise RegistryError(f"Corrupted registry file: {e}") from e
 
-        # Add app to registry
-        data = self._read()
-        data["apps"].append(app_data)
-        self._write(data)
-        logger.info(f"Added app to registry: {app_id}")
+            # Check if app already exists
+            apps: list[dict[str, Any]] = data.get("apps", [])
+            for app in apps:
+                if app.get("id") == app_id:
+                    raise AppExistsError(f"PWA '{app_id}' already exists in registry")
+
+            # Add app to registry
+            apps.append(app_data)
+            data["apps"] = apps
+
+            # Write atomically
+            self.registry_path.parent.mkdir(parents=True, exist_ok=True)
+            content = json.dumps(data, indent=2)
+            self.registry_path.write_text(content)
+            logger.info(f"Added app to registry: {app_id}")
 
     def update_app(self, app_id: str, updates: dict[str, Any]) -> None:
         """Update an existing PWA entry.
