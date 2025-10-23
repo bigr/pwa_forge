@@ -18,6 +18,8 @@ from pwa_forge.commands.config_cmd import (
     config_reset,
     config_set,
 )
+from pwa_forge.commands.doctor import DoctorCommandError
+from pwa_forge.commands.doctor import run_doctor as run_doctor_impl
 from pwa_forge.commands.edit import EditCommandError
 from pwa_forge.commands.edit import edit_app as edit_app_impl
 from pwa_forge.commands.handler import (
@@ -826,6 +828,129 @@ def generate_userscript(
             click.echo("\n[DRY-RUN] No changes were made.")
 
     except UserscriptCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@cli.command()
+@click.pass_context
+def doctor(ctx: click.Context) -> None:
+    """Check system requirements and configuration.
+
+    Performs diagnostic checks to verify that pwa-forge can function correctly
+    on your system. This includes checking for required dependencies, browser
+    availability, file permissions, and configuration validity.
+
+    Checks performed:
+    - Python version (>= 3.10 required)
+    - Browser executables (chrome, chromium, firefox, edge)
+    - XDG utilities (xdg-mime, update-desktop-database)
+    - Directory write permissions
+    - Desktop environment detection
+    - Config file validity
+    - Registry file validity
+    - Optional dependencies (Playwright)
+
+    Example:
+        pwa-forge doctor
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = run_doctor_impl(config)
+
+        no_color = ctx.obj.get("no_color", False)
+
+        # Display header
+        if not no_color:
+            click.secho("\n━━━ System Diagnostics ━━━\n", fg="blue", bold=True)
+        else:
+            click.echo("\n━━━ System Diagnostics ━━━\n")
+
+        # Display checks
+        for check in result["checks"]:
+            status = check["status"]
+            name = check["name"]
+            message = check["message"]
+            details = check.get("details", "")
+
+            # Choose symbol and color based on status
+            if status == "PASS":
+                symbol = "✓"
+                color = "green"
+            elif status == "FAIL":
+                symbol = "✗"
+                color = "red"
+            elif status == "WARNING":
+                symbol = "⚠"
+                color = "yellow"
+            elif status == "INFO":
+                symbol = "ℹ"
+                color = "blue"
+            else:
+                symbol = "•"
+                color = None
+
+            # Format output
+            if not no_color and color:
+                click.secho(f"  {symbol} {name}: {message}", fg=color)
+            else:
+                click.echo(f"  {symbol} {name}: {message}")
+
+            # Show details if provided
+            if details and status in ["FAIL", "WARNING"]:
+                click.echo(f"      → {details}")
+
+        # Display summary
+        if not no_color:
+            click.secho("\n━━━ Summary ━━━", fg="blue", bold=True)
+        else:
+            click.echo("\n━━━ Summary ━━━")
+
+        total = result["passed"] + result["failed"] + result["warnings"]
+
+        if result["passed"] > 0:
+            if not no_color:
+                click.secho(f"  ✓ Passed: {result['passed']}/{total}", fg="green")
+            else:
+                click.echo(f"  ✓ Passed: {result['passed']}/{total}")
+
+        if result["warnings"] > 0:
+            if not no_color:
+                click.secho(f"  ⚠ Warnings: {result['warnings']}/{total}", fg="yellow")
+            else:
+                click.echo(f"  ⚠ Warnings: {result['warnings']}/{total}")
+
+        if result["failed"] > 0:
+            if not no_color:
+                click.secho(f"  ✗ Failed: {result['failed']}/{total}", fg="red")
+            else:
+                click.echo(f"  ✗ Failed: {result['failed']}/{total}")
+
+        click.echo()
+
+        # Exit with appropriate code
+        if result["failed"] > 0:
+            if not no_color:
+                click.secho("Some checks failed. Please address the issues above.", fg="red", err=True)
+            else:
+                click.echo("Some checks failed. Please address the issues above.", err=True)
+            ctx.exit(1)
+        elif result["warnings"] > 0:
+            if not no_color:
+                click.secho("All critical checks passed with some warnings.", fg="yellow")
+            else:
+                click.echo("All critical checks passed with some warnings.")
+        else:
+            if not no_color:
+                click.secho("✓ All checks passed! Your system is ready.", fg="green")
+            else:
+                click.echo("✓ All checks passed! Your system is ready.")
+
+    except DoctorCommandError as e:
         if not ctx.obj.get("no_color"):
             click.secho(f"✗ Error: {e}", fg="red", err=True)
         else:
