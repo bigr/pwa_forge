@@ -10,6 +10,8 @@ import click
 from pwa_forge.commands.add import AddCommandError, add_app
 from pwa_forge.commands.audit import AuditCommandError
 from pwa_forge.commands.audit import audit_app as audit_app_impl
+from pwa_forge.commands.edit import EditCommandError
+from pwa_forge.commands.edit import edit_app as edit_app_impl
 from pwa_forge.commands.handler import (
     HandlerCommandError,
 )
@@ -366,13 +368,76 @@ def audit(ctx: click.Context, id: str | None, open_test_page: bool, fix: bool) -
 
 @cli.command()
 @click.argument("id")
+@click.option("--no-sync", is_flag=True, help="Skip automatic sync after editing")
 @click.pass_context
-def edit(ctx: click.Context, id: str) -> None:  # noqa: A002
+def edit(ctx: click.Context, id: str, no_sync: bool) -> None:  # noqa: A002
     """Open the manifest file in $EDITOR for manual editing.
 
+    After editing, the manifest is validated for correct YAML syntax and
+    required fields. If validation passes and --no-sync is not specified,
+    the wrapper and desktop files are automatically regenerated.
+
+    If validation fails, the original manifest is restored from backup.
+
     ID is the application identifier or name.
+
+    Example:
+        pwa-forge edit chatgpt
+        pwa-forge edit chatgpt --no-sync
     """
-    click.echo("Edit command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = edit_app_impl(
+            app_id=id,
+            config=config,
+            auto_sync=not no_sync,
+        )
+
+        no_color = ctx.obj.get("no_color", False)
+
+        if result["validation_errors"]:
+            # Validation failed
+            if not no_color:
+                click.secho(f"✗ Validation failed for: {result['id']}", fg="red", err=True)
+            else:
+                click.echo(f"✗ Validation failed for: {result['id']}", err=True)
+
+            for error in result["validation_errors"]:
+                if not no_color:
+                    click.secho(f"  • {error}", fg="red", err=True)
+                else:
+                    click.echo(f"  • {error}", err=True)
+
+            click.echo("\nManifest has been restored from backup.", err=True)
+            ctx.exit(1)
+        else:
+            # Success
+            if not no_color:
+                click.secho(f"✓ Manifest edited successfully: {result['id']}", fg="green")
+            else:
+                click.echo(f"✓ Manifest edited successfully: {result['id']}")
+
+            if result["synced"]:
+                click.echo("  Artifacts regenerated (wrapper, desktop file)")
+            elif not no_sync:
+                if not no_color:
+                    click.secho("  ⚠ Sync skipped (sync failed)", fg="yellow")
+                else:
+                    click.echo("  ⚠ Sync skipped (sync failed)")
+            else:
+                click.echo("  Sync skipped (--no-sync)")
+                if not no_color:
+                    click.secho(f"  Run 'pwa-forge sync {id}' to regenerate artifacts", fg="blue")
+                else:
+                    click.echo(f"  Run 'pwa-forge sync {id}' to regenerate artifacts")
+
+    except EditCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @cli.command()

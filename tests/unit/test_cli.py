@@ -109,12 +109,12 @@ class TestEditCommand:
         assert result.exit_code == 0
         assert "Open the manifest file" in result.output
 
-    def test_edit_command_placeholder(self) -> None:
-        """Test edit command placeholder."""
+    def test_edit_command_requires_id(self) -> None:
+        """Test edit command requires an app ID."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["edit", "test-id"])
-        assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        result = runner.invoke(cli.cli, ["edit"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "Error" in result.output
 
 
 class TestSyncCommand:
