@@ -29,7 +29,7 @@ install-playwright:  ## Install Playwright and browsers
 	$(PYTHON) -m playwright install --with-deps chromium
 
 test-unit:  ## Run unit and integration tests (fast)
-	$(PYTEST) -q -m "not playwright"
+	$(PYTEST) -q tests/unit tests/integration tests/e2e
 
 test-playwright:  ## Run Playwright browser integration tests
 	$(PYTEST) tests/playwright -v --browser chromium
@@ -38,7 +38,7 @@ test-all:  ## Run all tests including Playwright
 	$(PYTEST) -v
 
 test:  ## Run unit tests with coverage (default)
-	$(PYTEST) -q --cov=pwa_forge --cov-report=term-missing -m "not playwright"
+	$(PYTEST) -q tests/unit tests/integration tests/e2e --cov=pwa_forge --cov-report=term-missing
 
 lint:  ## Run linting (ruff + mypy)
 	$(RUFF) check src tests
@@ -58,7 +58,7 @@ ci-local:  ## Simulate CI pipeline locally
 	@$(MYPY) src
 	@echo ""
 	@echo "==> Running unit tests..."
-	@$(PYTEST) -q -m "not playwright"
+	@$(PYTEST) -q tests/unit tests/integration tests/e2e
 	@echo ""
 	@echo "==> Running Playwright tests..."
 	@if $(PYTHON) -c "import playwright" 2>/dev/null; then \
