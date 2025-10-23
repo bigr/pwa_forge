@@ -8,6 +8,8 @@ import logging
 import click
 
 from pwa_forge.commands.add import AddCommandError, add_app
+from pwa_forge.commands.audit import AuditCommandError
+from pwa_forge.commands.audit import audit_app as audit_app_impl
 from pwa_forge.commands.handler import (
     HandlerCommandError,
 )
@@ -241,8 +243,125 @@ def audit(ctx: click.Context, id: str | None, open_test_page: bool, fix: bool) -
     """Validate PWA configuration and functionality.
 
     If ID is omitted, audits all managed PWAs.
+
+    Checks performed:
+    - Manifest file exists and is valid YAML
+    - Desktop file exists and has required fields
+    - Wrapper script exists and is executable
+    - Profile directory exists
+    - Browser executable is available
+    - Icon file exists (if specified)
+    - Handler is registered (if userscript configured)
+
+    Example:
+        pwa-forge audit chatgpt
+        pwa-forge audit --fix
     """
-    click.echo("Audit command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = audit_app_impl(
+            app_id=id,
+            config=config,
+            fix=fix,
+            open_test_page=open_test_page,
+        )
+
+        # Display results
+        no_color = ctx.obj.get("no_color", False)
+
+        if result["audited_apps"] == 0:
+            click.echo("No PWAs to audit.")
+            return
+
+        click.echo(f"\nAudited {result['audited_apps']} PWA(s)\n")
+
+        for app_result in result["results"]:
+            app_id_str = app_result["id"]
+            if not no_color:
+                click.secho(f"━━━ {app_id_str} ━━━", fg="blue", bold=True)
+            else:
+                click.echo(f"━━━ {app_id_str} ━━━")
+
+            for check in app_result["checks"]:
+                status = check["status"]
+                name = check["name"]
+                message = check["message"]
+
+                if status == "PASS":
+                    symbol = "✓"
+                    color = "green"
+                elif status == "FAIL":
+                    symbol = "✗"
+                    color = "red"
+                elif status == "FIXED":
+                    symbol = "✓"
+                    color = "green"
+                elif status == "WARNING":
+                    symbol = "⚠"
+                    color = "yellow"
+                else:
+                    symbol = "•"
+                    color = None
+
+                if not no_color and color:
+                    click.secho(f"  {symbol} {name}: {message}", fg=color)
+                else:
+                    click.echo(f"  {symbol} {name}: {message}")
+
+            # Summary for this app
+            passed = app_result["passed"]
+            failed = app_result["failed"]
+            total = len(app_result["checks"])
+
+            click.echo(f"  → {passed}/{total} checks passed")
+            if failed > 0:
+                if not no_color:
+                    click.secho(f"  → {failed} issues found", fg="red")
+                else:
+                    click.echo(f"  → {failed} issues found")
+
+            click.echo()
+
+        # Overall summary
+        if not no_color:
+            click.secho("━━━ Summary ━━━", fg="blue", bold=True)
+        else:
+            click.echo("━━━ Summary ━━━")
+
+        click.echo(f"  Total: {result['audited_apps']} PWAs")
+        if result["passed"] > 0:
+            if not no_color:
+                click.secho(f"  Passed: {result['passed']}", fg="green")
+            else:
+                click.echo(f"  Passed: {result['passed']}")
+
+        if result["failed"] > 0:
+            if not no_color:
+                click.secho(f"  Failed: {result['failed']}", fg="red")
+            else:
+                click.echo(f"  Failed: {result['failed']}")
+
+        if result["fixed"] > 0:
+            if not no_color:
+                click.secho(f"  Fixed: {result['fixed']}", fg="green")
+            else:
+                click.echo(f"  Fixed: {result['fixed']}")
+
+        # Exit code
+        if result["failed"] > 0 and not fix:
+            if not no_color:
+                click.secho("\nRun with --fix to attempt repairs.", fg="yellow")
+            else:
+                click.echo("\nRun with --fix to attempt repairs.")
+            ctx.exit(1)
+
+    except AuditCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @cli.command()

@@ -91,12 +91,12 @@ class TestAuditCommand:
         assert result.exit_code == 0
         assert "Validate PWA configuration" in result.output
 
-    def test_audit_command_placeholder(self) -> None:
-        """Test audit command placeholder."""
+    def test_audit_command_with_nonexistent_app(self) -> None:
+        """Test audit command with non-existent app."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["audit"])
-        assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        result = runner.invoke(cli.cli, ["audit", "nonexistent-app-xyz"])
+        assert result.exit_code == 1
+        assert "Error" in result.output
 
 
 class TestEditCommand:
