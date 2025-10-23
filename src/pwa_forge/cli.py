@@ -10,6 +10,14 @@ import click
 from pwa_forge.commands.add import AddCommandError, add_app
 from pwa_forge.commands.audit import AuditCommandError
 from pwa_forge.commands.audit import audit_app as audit_app_impl
+from pwa_forge.commands.config_cmd import (
+    ConfigCommandError,
+    config_edit,
+    config_get,
+    config_list,
+    config_reset,
+    config_set,
+)
 from pwa_forge.commands.edit import EditCommandError
 from pwa_forge.commands.edit import edit_app as edit_app_impl
 from pwa_forge.commands.handler import (
@@ -492,34 +500,169 @@ def sync(ctx: click.Context, id: str, dry_run: bool) -> None:  # noqa: A002
 # Configuration Management
 @cli.group()
 def config() -> None:
-    """Manage global configuration."""
+    """Manage global configuration.
+
+    Examples:
+        pwa-forge config list
+        pwa-forge config get default_browser
+        pwa-forge config set default_browser firefox
+        pwa-forge config reset
+    """
 
 
 @config.command(name="get")
 @click.argument("key")
-def config_get(key: str) -> None:
-    """Display configuration value for KEY."""
-    click.echo("Config get command - Not yet implemented")
+@click.pass_context
+def config_get_cmd(ctx: click.Context, key: str) -> None:
+    """Display configuration value for KEY.
+
+    KEY can use dot notation to access nested values (e.g., browsers.chrome).
+
+    Examples:
+        pwa-forge config get default_browser
+        pwa-forge config get browsers.chrome
+        pwa-forge config get chrome_flags.enable
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        value = config_get(key, cfg)
+        click.echo(value)
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @config.command(name="set")
 @click.argument("key")
 @click.argument("value")
-def config_set(key: str, value: str) -> None:
-    """Set configuration KEY to VALUE."""
-    click.echo("Config set command - Not yet implemented")
+@click.pass_context
+def config_set_cmd(ctx: click.Context, key: str, value: str) -> None:
+    """Set configuration KEY to VALUE.
+
+    KEY can use dot notation to access nested values.
+    VALUE will be parsed to the correct type (string, number, boolean, list).
+
+    Examples:
+        pwa-forge config set default_browser firefox
+        pwa-forge config set browsers.chrome /usr/bin/google-chrome
+        pwa-forge config set log_level debug
+        pwa-forge config set chrome_flags.enable "[WebUIDarkMode,WebUIEnableLazyLoading]"
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        config_set(key, value, cfg)
+
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✓ Configuration updated: {key} = {value}", fg="green")
+        else:
+            click.echo(f"✓ Configuration updated: {key} = {value}")
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @config.command(name="list")
-def config_list() -> None:
-    """Show all configuration values."""
-    click.echo("Config list command - Not yet implemented")
+@click.pass_context
+def config_list_cmd(ctx: click.Context) -> None:
+    """Show all configuration values.
+
+    Displays the current configuration in YAML format.
+
+    Example:
+        pwa-forge config list
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        import yaml
+
+        config_data = config_list(cfg)
+        output = yaml.safe_dump(config_data, default_flow_style=False, sort_keys=False)
+
+        if not ctx.obj.get("no_color"):
+            click.secho("Current configuration:", fg="blue", bold=True)
+        else:
+            click.echo("Current configuration:")
+
+        click.echo(output)
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @config.command(name="reset")
-def config_reset() -> None:
-    """Reset configuration to defaults."""
-    click.echo("Config reset command - Not yet implemented")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.pass_context
+def config_reset_cmd(ctx: click.Context, yes: bool) -> None:
+    """Reset configuration to defaults.
+
+    This will delete the user configuration file and revert to default settings.
+
+    Example:
+        pwa-forge config reset
+        pwa-forge config reset --yes
+    """
+    cfg = ctx.obj["config"]
+
+    if not yes and not click.confirm("Are you sure you want to reset configuration to defaults?"):
+        click.echo("Cancelled.")
+        ctx.exit(0)
+
+    try:
+        config_reset(cfg)
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Configuration reset to defaults", fg="green")
+        else:
+            click.echo("✓ Configuration reset to defaults")
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@config.command(name="edit")
+@click.pass_context
+def config_edit_cmd(ctx: click.Context) -> None:
+    """Open configuration file in $EDITOR.
+
+    Opens the user configuration file in your preferred text editor.
+    If the file doesn't exist, it will be created with default values.
+
+    The file is validated after editing. If validation fails, the original
+    file is restored from backup.
+
+    Example:
+        pwa-forge config edit
+    """
+    cfg = ctx.obj["config"]
+
+    try:
+        config_edit(cfg)
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Configuration file edited successfully", fg="green")
+        else:
+            click.echo("✓ Configuration file edited successfully")
+    except ConfigCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 # URL Handler System Commands
