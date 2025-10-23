@@ -260,6 +260,17 @@ class TestVerbosityOptions:
         result = runner.invoke(cli.cli, ["-vv", "version"])
         assert result.exit_code == 0
 
+    def test_quiet_and_verbose_mutually_exclusive(self) -> None:
+        """Test that --quiet and --verbose cannot be used together."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["--quiet", "--verbose", "version"])
+        assert result.exit_code != 0
+        assert "mutually exclusive" in result.output
+
+        result = runner.invoke(cli.cli, ["-q", "-v", "version"])
+        assert result.exit_code != 0
+        assert "mutually exclusive" in result.output
+
 
 class TestGenerateHandlerCommand:
     """Test generate-handler command."""

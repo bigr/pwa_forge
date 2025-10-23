@@ -68,6 +68,10 @@ def cli(ctx: click.Context, verbose: int, quiet: bool, no_color: bool) -> None:
         pwa-forge list
         pwa-forge remove chatgpt
     """
+    # Validate mutually exclusive options
+    if quiet and verbose > 0:
+        raise click.UsageError("--quiet and --verbose are mutually exclusive")
+
     # Load configuration
     config = load_config()
 
