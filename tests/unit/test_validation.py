@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import requests
 from pwa_forge.validation import (
+    ValidationStatus,
     extract_name_from_url,
     generate_id,
     generate_wm_class,
@@ -19,62 +20,72 @@ class TestValidateUrl:
 
     def test_valid_http_url(self) -> None:
         """Test validation of valid HTTP URL."""
-        is_valid, message = validate_url("http://example.com")
+        is_valid, status, message = validate_url("http://example.com")
         assert is_valid is True
+        assert status == ValidationStatus.OK
         assert message == "OK"
 
     def test_valid_https_url(self) -> None:
         """Test validation of valid HTTPS URL."""
-        is_valid, message = validate_url("https://example.com")
+        is_valid, status, message = validate_url("https://example.com")
         assert is_valid is True
+        assert status == ValidationStatus.OK
         assert message == "OK"
 
     def test_valid_url_with_path(self) -> None:
         """Test validation of URL with path."""
-        is_valid, message = validate_url("https://example.com/path/to/app")
+        is_valid, status, message = validate_url("https://example.com/path/to/app")
         assert is_valid is True
+        assert status == ValidationStatus.OK
         assert message == "OK"
 
     def test_valid_url_with_query(self) -> None:
         """Test validation of URL with query parameters."""
-        is_valid, message = validate_url("https://example.com?param=value")
+        is_valid, status, message = validate_url("https://example.com?param=value")
         assert is_valid is True
+        assert status == ValidationStatus.OK
         assert message == "OK"
 
     def test_invalid_scheme_ftp(self) -> None:
         """Test rejection of FTP URLs."""
-        is_valid, message = validate_url("ftp://example.com")
+        is_valid, status, message = validate_url("ftp://example.com")
         assert is_valid is False
+        assert status == ValidationStatus.ERROR
         assert "http" in message.lower()
 
     def test_invalid_scheme_file(self) -> None:
         """Test rejection of file URLs."""
-        is_valid, message = validate_url("file:///path/to/file")
+        is_valid, status, message = validate_url("file:///path/to/file")
         assert is_valid is False
+        assert status == ValidationStatus.ERROR
         assert "http" in message.lower()
 
     def test_missing_hostname(self) -> None:
         """Test rejection of URL without hostname."""
-        is_valid, message = validate_url("https://")
+        is_valid, status, message = validate_url("https://")
         assert is_valid is False
+        assert status == ValidationStatus.ERROR
         assert "hostname" in message.lower()
 
     def test_localhost_url(self) -> None:
         """Test warning for localhost URLs."""
-        is_valid, message = validate_url("http://localhost:8080")
+        is_valid, status, message = validate_url("http://localhost:8080")
         assert is_valid is True
+        assert status == ValidationStatus.WARNING
         assert "localhost" in message.lower()
 
     def test_localhost_ip(self) -> None:
         """Test warning for 127.0.0.1 URLs."""
-        is_valid, message = validate_url("http://127.0.0.1:3000")
+        is_valid, status, message = validate_url("http://127.0.0.1:3000")
         assert is_valid is True
+        assert status == ValidationStatus.WARNING
         assert "localhost" in message.lower()
 
     def test_invalid_url_format(self) -> None:
         """Test rejection of malformed URLs."""
-        is_valid, _ = validate_url("not a url")
+        is_valid, status, _ = validate_url("not a url")
         assert is_valid is False
+        assert status == ValidationStatus.ERROR
 
     def test_url_parsing_exception(self) -> None:
         """Test handling of URL parsing exceptions."""
@@ -85,24 +96,27 @@ class TestValidateUrl:
 
         with patch("pwa_forge.validation.urlparse") as mock_urlparse:
             mock_urlparse.side_effect = ValueError("Invalid URL")
-            is_valid, message = validate_url("http://invalid")
+            is_valid, status, message = validate_url("http://invalid")
             assert is_valid is False
+            assert status == ValidationStatus.ERROR
             assert "Invalid URL format" in message
 
     def test_url_connectivity_check_success(self) -> None:
         """Test URL connectivity check when verify=True."""
         # This will try to make a real HTTP request
         # We can't control the network, so this may pass or fail depending on connectivity
-        is_valid, message = validate_url("https://httpbin.org/status/200", verify=True)
+        is_valid, status, message = validate_url("https://httpbin.org/status/200", verify=True)
         # Just check that it doesn't crash
         assert isinstance(is_valid, bool)
+        assert isinstance(status, str)
         assert isinstance(message, str)
 
     def test_url_connectivity_check_failure(self) -> None:
         """Test URL connectivity check failure."""
         # Use a non-existent domain
-        is_valid, message = validate_url("https://this-domain-does-not-exist-12345.com", verify=True)
+        is_valid, status, message = validate_url("https://this-domain-does-not-exist-12345.com", verify=True)
         assert is_valid is False
+        assert status == ValidationStatus.ERROR
         assert "not accessible" in message
 
     def test_url_connectivity_check_http_error(self) -> None:
@@ -111,16 +125,18 @@ class TestValidateUrl:
             mock_response = Mock()
             mock_response.status_code = 404
             mock_head.return_value = mock_response
-            is_valid, message = validate_url("https://example.com/notfound", verify=True)
+            is_valid, status, message = validate_url("https://example.com/notfound", verify=True)
             assert is_valid is False
+            assert status == ValidationStatus.ERROR
             assert "404" in message
 
     def test_url_connectivity_check_request_exception(self) -> None:
         """Test URL connectivity check with request exception."""
         with patch("pwa_forge.validation.requests.head") as mock_head:
             mock_head.side_effect = requests.RequestException("Connection timeout")
-            is_valid, message = validate_url("https://example.com", verify=True)
+            is_valid, status, message = validate_url("https://example.com", verify=True)
             assert is_valid is False
+            assert status == ValidationStatus.ERROR
             assert "not accessible" in message
 
 

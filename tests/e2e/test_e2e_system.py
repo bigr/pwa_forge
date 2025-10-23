@@ -146,6 +146,9 @@ class TestE2EBrowserDetection:
 
         monkeypatch.setattr(Path, "exists", mock_exists)
 
+        # Mock shutil.which to return None (browser not in PATH)
+        monkeypatch.setattr("shutil.which", lambda _: None)
+
         # Add PWA should fail
         from pwa_forge.commands.add import AddCommandError
 

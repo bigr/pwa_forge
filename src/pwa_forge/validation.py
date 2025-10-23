@@ -11,7 +11,15 @@ import requests
 logger = logging.getLogger(__name__)
 
 
-def validate_url(url: str, verify: bool = False, timeout: int = 5) -> tuple[bool, str]:
+class ValidationStatus:
+    """URL validation result status codes."""
+
+    OK = "OK"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+
+
+def validate_url(url: str, verify: bool = False, timeout: int = 5) -> tuple[bool, str, str]:
     """Validate URL format and optionally check accessibility.
 
     Args:
@@ -20,30 +28,33 @@ def validate_url(url: str, verify: bool = False, timeout: int = 5) -> tuple[bool
         timeout: Connection timeout in seconds for verification.
 
     Returns:
-        Tuple of (is_valid, message) where message is "OK" or error description.
+        Tuple of (is_valid, status, message) where:
+        - is_valid: True if URL is valid (may have warnings)
+        - status: One of ValidationStatus.OK, ValidationStatus.WARNING, ValidationStatus.ERROR
+        - message: Description of the validation result
     """
     # Parse URL
     try:
         parsed = urlparse(url)
     except Exception as e:
         logger.debug(f"URL parsing failed for '{url}': {e}")
-        return False, f"Invalid URL format: {e}"
+        return False, ValidationStatus.ERROR, f"Invalid URL format: {e}"
 
     # Check scheme
     if parsed.scheme not in ("http", "https"):
         logger.debug(f"Invalid URL scheme: {parsed.scheme}")
-        return False, "URL must use http:// or https://"
+        return False, ValidationStatus.ERROR, "URL must use http:// or https://"
 
     # Check host
     if not parsed.netloc:
         logger.debug("URL missing hostname")
-        return False, "URL must include a hostname"
+        return False, ValidationStatus.ERROR, "URL must include a hostname"
 
     # Warn about localhost
     hostname = parsed.netloc.split(":")[0] if ":" in parsed.netloc else parsed.netloc
     if hostname in ("localhost", "127.0.0.1", "::1"):
         logger.warning(f"Localhost URL detected: {url}")
-        return True, "Warning: localhost URLs won't work from system launcher"
+        return True, ValidationStatus.WARNING, "localhost URLs won't work from system launcher"
 
     # Optional connectivity check
     if verify:
@@ -52,13 +63,13 @@ def validate_url(url: str, verify: bool = False, timeout: int = 5) -> tuple[bool
             response = requests.head(url, timeout=timeout, allow_redirects=True)
             if response.status_code >= 400:
                 logger.warning(f"URL returned HTTP {response.status_code}: {url}")
-                return False, f"URL returned HTTP {response.status_code}"
+                return False, ValidationStatus.ERROR, f"URL returned HTTP {response.status_code}"
         except requests.RequestException as e:
             logger.warning(f"URL not accessible: {url} - {e}")
-            return False, f"URL not accessible: {e}"
+            return False, ValidationStatus.ERROR, f"URL not accessible: {e}"
 
     logger.debug(f"URL validation passed: {url}")
-    return True, "OK"
+    return True, ValidationStatus.OK, "OK"
 
 
 def generate_id(name: str) -> str:

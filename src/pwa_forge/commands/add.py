@@ -12,6 +12,7 @@ from pwa_forge.config import Config
 from pwa_forge.registry import Registry
 from pwa_forge.templates import render_template
 from pwa_forge.validation import (
+    ValidationStatus,
     extract_name_from_url,
     generate_id,
     generate_wm_class,
@@ -65,10 +66,10 @@ def add_app(
     logger.info(f"Adding PWA for URL: {url}")
 
     # Validate URL
-    is_valid, message = validate_url(url, verify=False)
+    is_valid, status, message = validate_url(url, verify=False)
     if not is_valid:
         raise AddCommandError(f"Invalid URL: {message}")
-    if "Warning" in message:
+    if status == ValidationStatus.WARNING:
         logger.warning(message)
 
     # Determine app name
@@ -109,8 +110,14 @@ def add_app(
     # Handle icon
     icon_path = _handle_icon(icon, app_id, config.icons_dir, dry_run) if icon else None
 
-    # Get browser executable
-    browser_exec = _get_browser_executable(browser, config)
+    # Get browser executable (skip in dry-run to allow testing without browsers installed)
+    if not dry_run:
+        browser_exec = _get_browser_executable(browser, config)
+    else:
+        # In dry-run, use placeholder path that won't be written
+        browser_exec_str = f"/usr/bin/{browser}"
+        logger.info(f"[DRY-RUN] Would use browser: {browser_exec_str}")
+        browser_exec = Path(browser_exec_str)
 
     # Parse chrome flags
     parsed_flags = _parse_chrome_flags(chrome_flags) if chrome_flags else {}
@@ -286,6 +293,14 @@ def _get_browser_executable(browser: str, config: Config) -> Path:
         "edge": ["/usr/bin/microsoft-edge-stable", "/usr/bin/microsoft-edge"],
     }
 
+    # Map browser names to common executable names for shutil.which()
+    browser_executables = {
+        "chrome": ["google-chrome-stable", "google-chrome"],
+        "chromium": ["chromium-browser", "chromium"],
+        "firefox": ["firefox"],
+        "edge": ["microsoft-edge-stable", "microsoft-edge"],
+    }
+
     # Try configured path first
     if hasattr(config.browsers, browser):
         browser_path = getattr(config.browsers, browser)
@@ -299,6 +314,13 @@ def _get_browser_executable(browser: str, config: Config) -> Path:
         if path.exists():
             logger.debug(f"Found browser at: {path}")
             return path
+
+    # Fallback: search in PATH using shutil.which()
+    for executable_name in browser_executables.get(browser, []):
+        which_path = shutil.which(executable_name)
+        if which_path:
+            logger.debug(f"Found browser in PATH: {which_path}")
+            return Path(which_path)
 
     raise AddCommandError(f"Browser '{browser}' not found. Please install it or specify the path in config.")
 

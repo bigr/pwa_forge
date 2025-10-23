@@ -24,14 +24,16 @@ Complete guide to using PWA Forge for managing Progressive Web Apps on Linux.
 
 ### Installation
 
-```bash
-# Install from PyPI (when published)
-pip install pwa-forge
+**Note:** PWA Forge is not yet published to PyPI. Please install from source:
 
-# Or install from source
-git clone https://github.com/yourusername/pwa-forge.git
-cd pwa-forge
+```bash
+# Install from source
+git clone https://github.com/bigr/pwa_forge.git
+cd pwa_forge
 pip install -e .
+
+# Or install directly via pip with git
+pip install git+https://github.com/bigr/pwa_forge.git
 ```
 
 ### Create Your First PWA
