@@ -12,6 +12,7 @@ from pwa_forge.config import Config
 from pwa_forge.registry import Registry
 from pwa_forge.templates import render_template
 from pwa_forge.validation import (
+    ValidationStatus,
     extract_name_from_url,
     generate_id,
     generate_wm_class,
@@ -65,10 +66,10 @@ def add_app(
     logger.info(f"Adding PWA for URL: {url}")
 
     # Validate URL
-    is_valid, message = validate_url(url, verify=False)
+    is_valid, status, message = validate_url(url, verify=False)
     if not is_valid:
         raise AddCommandError(f"Invalid URL: {message}")
-    if "Warning" in message:
+    if status == ValidationStatus.WARNING:
         logger.warning(message)
 
     # Determine app name
