@@ -102,3 +102,83 @@ class TestBrowserDetection:
         ):
             result = _get_browser_executable("edge", config)
             assert result == Path("/opt/microsoft/msedge/microsoft-edge")
+
+
+class TestDryRunBehavior:
+    """Test dry-run mode behavior."""
+
+    def test_dry_run_does_not_require_browser(self, tmp_path: Path) -> None:
+        """Test that dry-run mode works without browser installed."""
+        from pwa_forge.commands.add import add_app
+
+        config = Config()
+        config.directories.desktop = tmp_path / "applications"
+        config.directories.icons = tmp_path / "icons"
+        config.directories.wrappers = tmp_path / "wrappers"
+        config.directories.apps = tmp_path / "apps"
+
+        # Create directories
+        for directory in [
+            config.directories.desktop,
+            config.directories.icons,
+            config.directories.wrappers,
+            config.directories.apps,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+
+        # Mock all browser detection to fail, and mock the data dir for registry
+        with (
+            patch("pathlib.Path.exists", return_value=False),
+            patch("shutil.which", return_value=None),
+            patch("pwa_forge.utils.paths.get_app_data_dir", return_value=tmp_path / "data"),
+        ):
+            # This should NOT raise an error in dry-run mode
+            result = add_app(
+                url="https://example.com",
+                config=config,
+                name="Test App",
+                app_id="test-app",
+                browser="chrome",
+                dry_run=True,
+            )
+
+            # Verify result contains expected fields
+            assert result["id"] == "test-app"
+            assert result["name"] == "Test App"
+            assert result["browser"] == "chrome"
+
+    def test_non_dry_run_requires_browser(self, tmp_path: Path) -> None:
+        """Test that non-dry-run mode requires browser to be found."""
+        from pwa_forge.commands.add import AddCommandError, add_app
+
+        config = Config()
+        config.directories.desktop = tmp_path / "applications"
+        config.directories.icons = tmp_path / "icons"
+        config.directories.wrappers = tmp_path / "wrappers"
+        config.directories.apps = tmp_path / "apps"
+
+        # Create directories
+        for directory in [
+            config.directories.desktop,
+            config.directories.icons,
+            config.directories.wrappers,
+            config.directories.apps,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+
+        # Mock all browser detection to fail
+        with (
+            patch("pathlib.Path.exists", return_value=False),
+            patch("shutil.which", return_value=None),
+            patch("pwa_forge.utils.paths.get_app_data_dir", return_value=tmp_path / "data"),
+            pytest.raises(AddCommandError, match="Browser 'chrome' not found"),
+        ):
+            # This SHOULD raise an error in non-dry-run mode
+            add_app(
+                url="https://example.com",
+                config=config,
+                name="Test App",
+                app_id="test-app-2",
+                browser="chrome",
+                dry_run=False,
+            )

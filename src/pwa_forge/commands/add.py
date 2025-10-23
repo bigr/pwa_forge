@@ -109,8 +109,14 @@ def add_app(
     # Handle icon
     icon_path = _handle_icon(icon, app_id, config.icons_dir, dry_run) if icon else None
 
-    # Get browser executable
-    browser_exec = _get_browser_executable(browser, config)
+    # Get browser executable (skip in dry-run to allow testing without browsers installed)
+    if not dry_run:
+        browser_exec = _get_browser_executable(browser, config)
+    else:
+        # In dry-run, use placeholder path that won't be written
+        browser_exec_str = f"/usr/bin/{browser}"
+        logger.info(f"[DRY-RUN] Would use browser: {browser_exec_str}")
+        browser_exec = Path(browser_exec_str)
 
     # Parse chrome flags
     parsed_flags = _parse_chrome_flags(chrome_flags) if chrome_flags else {}
