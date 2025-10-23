@@ -836,16 +836,23 @@ Development:
 
 ### Installation Methods
 
-#### From PyPI
+**Note:** PWA Forge is not yet published to PyPI. Install from source:
+
+#### From Source (Recommended)
 ```bash
-pip install pwa-forge
+git clone https://github.com/bigr/pwa_forge.git
+cd pwa_forge
+pip install -e .
 ```
 
-#### From Source
+#### Via pip with git
 ```bash
-git clone https://github.com/yourusername/pwa-forge.git
-cd pwa-forge
-pip install -e .
+pip install git+https://github.com/bigr/pwa_forge.git
+```
+
+#### From PyPI (Future)
+```bash
+pip install pwa-forge  # Not yet available
 ```
 
 #### System Package (Future)
@@ -2661,7 +2668,7 @@ Examples:
   pwa-forge list --verbose
   pwa-forge audit chatgpt --fix
 
-  For more help: https://github.com/yourusername/pwa-forge
+  For more help: https://github.com/bigr/pwa_forge
 ```
 
 ### Add Command Help

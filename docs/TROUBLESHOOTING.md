@@ -786,7 +786,7 @@ If your issue isn't covered here:
    ```
 
 4. **Search existing issues:**
-   - GitHub Issues: https://github.com/yourusername/pwa-forge/issues
+   - GitHub Issues: https://github.com/bigr/pwa_forge/issues
 
 5. **Create a bug report:**
    Include:
