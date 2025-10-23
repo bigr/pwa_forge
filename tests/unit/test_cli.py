@@ -91,12 +91,12 @@ class TestAuditCommand:
         assert result.exit_code == 0
         assert "Validate PWA configuration" in result.output
 
-    def test_audit_command_placeholder(self) -> None:
-        """Test audit command placeholder."""
+    def test_audit_command_with_nonexistent_app(self) -> None:
+        """Test audit command with non-existent app."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["audit"])
-        assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        result = runner.invoke(cli.cli, ["audit", "nonexistent-app-xyz"])
+        assert result.exit_code == 1
+        assert "Error" in result.output
 
 
 class TestEditCommand:
@@ -109,12 +109,12 @@ class TestEditCommand:
         assert result.exit_code == 0
         assert "Open the manifest file" in result.output
 
-    def test_edit_command_placeholder(self) -> None:
-        """Test edit command placeholder."""
+    def test_edit_command_requires_id(self) -> None:
+        """Test edit command requires an app ID."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["edit", "test-id"])
-        assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        result = runner.invoke(cli.cli, ["edit"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "Error" in result.output
 
 
 class TestSyncCommand:
@@ -127,12 +127,12 @@ class TestSyncCommand:
         assert result.exit_code == 0
         assert "Regenerate all artifacts" in result.output
 
-    def test_sync_command_placeholder(self) -> None:
-        """Test sync command placeholder."""
+    def test_sync_command_requires_id(self) -> None:
+        """Test sync command requires an app ID."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["sync", "test-id"])
-        assert result.exit_code == 0
-        assert "Not yet implemented" in result.output
+        result = runner.invoke(cli.cli, ["sync"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "Error" in result.output
 
 
 class TestConfigCommands:

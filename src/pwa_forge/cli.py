@@ -8,6 +8,10 @@ import logging
 import click
 
 from pwa_forge.commands.add import AddCommandError, add_app
+from pwa_forge.commands.audit import AuditCommandError
+from pwa_forge.commands.audit import audit_app as audit_app_impl
+from pwa_forge.commands.edit import EditCommandError
+from pwa_forge.commands.edit import edit_app as edit_app_impl
 from pwa_forge.commands.handler import (
     HandlerCommandError,
 )
@@ -20,6 +24,8 @@ from pwa_forge.commands.handler import (
 from pwa_forge.commands.list_apps import list_apps as list_apps_impl
 from pwa_forge.commands.remove import RemoveCommandError
 from pwa_forge.commands.remove import remove_app as remove_app_impl
+from pwa_forge.commands.sync import SyncCommandError
+from pwa_forge.commands.sync import sync_app as sync_app_impl
 from pwa_forge.commands.userscript import (
     UserscriptCommandError,
 )
@@ -239,30 +245,248 @@ def audit(ctx: click.Context, id: str | None, open_test_page: bool, fix: bool) -
     """Validate PWA configuration and functionality.
 
     If ID is omitted, audits all managed PWAs.
+
+    Checks performed:
+    - Manifest file exists and is valid YAML
+    - Desktop file exists and has required fields
+    - Wrapper script exists and is executable
+    - Profile directory exists
+    - Browser executable is available
+    - Icon file exists (if specified)
+    - Handler is registered (if userscript configured)
+
+    Example:
+        pwa-forge audit chatgpt
+        pwa-forge audit --fix
     """
-    click.echo("Audit command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = audit_app_impl(
+            app_id=id,
+            config=config,
+            fix=fix,
+            open_test_page=open_test_page,
+        )
+
+        # Display results
+        no_color = ctx.obj.get("no_color", False)
+
+        if result["audited_apps"] == 0:
+            click.echo("No PWAs to audit.")
+            return
+
+        click.echo(f"\nAudited {result['audited_apps']} PWA(s)\n")
+
+        for app_result in result["results"]:
+            app_id_str = app_result["id"]
+            if not no_color:
+                click.secho(f"━━━ {app_id_str} ━━━", fg="blue", bold=True)
+            else:
+                click.echo(f"━━━ {app_id_str} ━━━")
+
+            for check in app_result["checks"]:
+                status = check["status"]
+                name = check["name"]
+                message = check["message"]
+
+                if status == "PASS":
+                    symbol = "✓"
+                    color = "green"
+                elif status == "FAIL":
+                    symbol = "✗"
+                    color = "red"
+                elif status == "FIXED":
+                    symbol = "✓"
+                    color = "green"
+                elif status == "WARNING":
+                    symbol = "⚠"
+                    color = "yellow"
+                else:
+                    symbol = "•"
+                    color = None
+
+                if not no_color and color:
+                    click.secho(f"  {symbol} {name}: {message}", fg=color)
+                else:
+                    click.echo(f"  {symbol} {name}: {message}")
+
+            # Summary for this app
+            passed = app_result["passed"]
+            failed = app_result["failed"]
+            total = len(app_result["checks"])
+
+            click.echo(f"  → {passed}/{total} checks passed")
+            if failed > 0:
+                if not no_color:
+                    click.secho(f"  → {failed} issues found", fg="red")
+                else:
+                    click.echo(f"  → {failed} issues found")
+
+            click.echo()
+
+        # Overall summary
+        if not no_color:
+            click.secho("━━━ Summary ━━━", fg="blue", bold=True)
+        else:
+            click.echo("━━━ Summary ━━━")
+
+        click.echo(f"  Total: {result['audited_apps']} PWAs")
+        if result["passed"] > 0:
+            if not no_color:
+                click.secho(f"  Passed: {result['passed']}", fg="green")
+            else:
+                click.echo(f"  Passed: {result['passed']}")
+
+        if result["failed"] > 0:
+            if not no_color:
+                click.secho(f"  Failed: {result['failed']}", fg="red")
+            else:
+                click.echo(f"  Failed: {result['failed']}")
+
+        if result["fixed"] > 0:
+            if not no_color:
+                click.secho(f"  Fixed: {result['fixed']}", fg="green")
+            else:
+                click.echo(f"  Fixed: {result['fixed']}")
+
+        # Exit code
+        if result["failed"] > 0 and not fix:
+            if not no_color:
+                click.secho("\nRun with --fix to attempt repairs.", fg="yellow")
+            else:
+                click.echo("\nRun with --fix to attempt repairs.")
+            ctx.exit(1)
+
+    except AuditCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @cli.command()
 @click.argument("id")
+@click.option("--no-sync", is_flag=True, help="Skip automatic sync after editing")
 @click.pass_context
-def edit(ctx: click.Context, id: str) -> None:  # noqa: A002
+def edit(ctx: click.Context, id: str, no_sync: bool) -> None:  # noqa: A002
     """Open the manifest file in $EDITOR for manual editing.
 
+    After editing, the manifest is validated for correct YAML syntax and
+    required fields. If validation passes and --no-sync is not specified,
+    the wrapper and desktop files are automatically regenerated.
+
+    If validation fails, the original manifest is restored from backup.
+
     ID is the application identifier or name.
+
+    Example:
+        pwa-forge edit chatgpt
+        pwa-forge edit chatgpt --no-sync
     """
-    click.echo("Edit command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = edit_app_impl(
+            app_id=id,
+            config=config,
+            auto_sync=not no_sync,
+        )
+
+        no_color = ctx.obj.get("no_color", False)
+
+        if result["validation_errors"]:
+            # Validation failed
+            if not no_color:
+                click.secho(f"✗ Validation failed for: {result['id']}", fg="red", err=True)
+            else:
+                click.echo(f"✗ Validation failed for: {result['id']}", err=True)
+
+            for error in result["validation_errors"]:
+                if not no_color:
+                    click.secho(f"  • {error}", fg="red", err=True)
+                else:
+                    click.echo(f"  • {error}", err=True)
+
+            click.echo("\nManifest has been restored from backup.", err=True)
+            ctx.exit(1)
+        else:
+            # Success
+            if not no_color:
+                click.secho(f"✓ Manifest edited successfully: {result['id']}", fg="green")
+            else:
+                click.echo(f"✓ Manifest edited successfully: {result['id']}")
+
+            if result["synced"]:
+                click.echo("  Artifacts regenerated (wrapper, desktop file)")
+            elif not no_sync:
+                if not no_color:
+                    click.secho("  ⚠ Sync skipped (sync failed)", fg="yellow")
+                else:
+                    click.echo("  ⚠ Sync skipped (sync failed)")
+            else:
+                click.echo("  Sync skipped (--no-sync)")
+                if not no_color:
+                    click.secho(f"  Run 'pwa-forge sync {id}' to regenerate artifacts", fg="blue")
+                else:
+                    click.echo(f"  Run 'pwa-forge sync {id}' to regenerate artifacts")
+
+    except EditCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 @cli.command()
 @click.argument("id")
+@click.option("--dry-run", is_flag=True, help="Show what would be regenerated")
 @click.pass_context
-def sync(ctx: click.Context, id: str) -> None:  # noqa: A002
+def sync(ctx: click.Context, id: str, dry_run: bool) -> None:  # noqa: A002
     """Regenerate all artifacts from the manifest file.
 
     ID is the application identifier or name.
+
+    Use this command after manually editing the manifest to regenerate
+    wrapper scripts and desktop files.
+
+    Example:
+        pwa-forge sync chatgpt
     """
-    click.echo("Sync command - Not yet implemented")
+    config = ctx.obj["config"]
+
+    try:
+        result = sync_app_impl(
+            app_id=id,
+            config=config,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✓ Synced successfully: {result['id']}", fg="green")
+        else:
+            click.echo(f"✓ Synced successfully: {result['id']}")
+
+        if result["regenerated"]:
+            click.echo(f"  Regenerated: {', '.join(result['regenerated'])}")
+
+        for warning in result["warnings"]:
+            if not ctx.obj.get("no_color"):
+                click.secho(f"  ⚠ {warning}", fg="yellow")
+            else:
+                click.echo(f"  ⚠ {warning}")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+
+    except SyncCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
 
 
 # Configuration Management
