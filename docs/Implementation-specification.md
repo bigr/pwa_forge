@@ -15,14 +15,30 @@
 - **CI/CD:** GitHub Actions with linting, type checking, and multi-Python testing
 - **Code Quality:** Pre-commit hooks, mypy strict typing, ruff linting
 - **Documentation:** README, TESTING.md, USAGE.md, TROUBLESHOOTING.md complete
-- **Commands:** 11 commands fully implemented (add, list, remove, audit, sync, edit, generate-handler, install-handler, generate-userscript, config group, version)
+- **Commands:** 11 commands implemented
+  - ✅ **Fully working:** add, list, remove, audit, sync, edit, generate-handler, install-handler, generate-userscript, version
+  - ⚠️ **Stub only:** config (get/set/list/reset) - CLI wired but no implementation
+  - ❌ **Missing:** doctor command - not implemented at all
 
 **Remaining Work (Phase 7):**
-- 🚧 **Phase 7:** doctor command, config commands (get/set/list/reset/edit), shell completion
 
-**Estimated Completion:** ~1-2 LLM-assisted coding sessions
-- Session 1: Config commands + Doctor command (3-4 hours)
-- Session 2: Shell completion + Final polish and release (2-3 hours)
+**High Priority:**
+- ❌ `doctor` command - system diagnostics (browsers, XDG tools, permissions, Python version)
+- ⚠️ Config commands implementation (get/set/list/reset) - stubs exist, need full implementation
+
+**Medium Priority:**
+- ❌ Shell completion (bash, zsh, fish)
+- ❌ Release preparation (CHANGELOG.md, git tag, PyPI publishing)
+- ❌ System packaging (apt/deb, flatpak, snap, AUR) - see Packaging section below
+
+**Low Priority:**
+- Error code standardization
+- Additional error message polish
+
+**Estimated Completion:** ~2-3 LLM-assisted coding sessions
+- Session 1: Config commands implementation (2-3 hours)
+- Session 2: Doctor command + shell completion (2-3 hours)
+- Session 3: Packaging preparation + release process (2-4 hours)
 
 See **LLM Implementation Guide** section below for detailed, actionable instructions.
 
@@ -863,6 +879,378 @@ pwa-forge doctor
 pwa-forge config set default_browser chrome
 ```
 
+---
+
+## System Packaging Options
+
+**pwa-forge** is currently distributed via PyPI (`pip install pwa-forge`). For broader distribution and easier system integration, consider packaging for native package managers.
+
+### Recommended Packaging Formats
+
+#### 1. **Debian/Ubuntu (.deb) Package** ⭐ **RECOMMENDED**
+
+**Pros:**
+- Native integration with apt/dpkg
+- Proper dependency management (python3, xdg-utils, browsers)
+- Easy installation for Debian/Ubuntu/Mint users
+- Can be hosted in PPA (Personal Package Archive)
+
+**Implementation Steps:**
+1. Create `debian/` directory with packaging metadata
+2. Use `stdeb` or `dh-virtualenv` to build .deb from Python package
+3. Define dependencies: `python3 (>= 3.10), xdg-utils, python3-click, python3-jinja2, python3-yaml, python3-requests`
+4. Add post-install script to suggest browser installation
+5. Host in Launchpad PPA or GitHub releases
+
+**Files needed:**
+```
+debian/
+├── control         # Package metadata and dependencies
+├── rules           # Build instructions
+├── changelog       # Version history
+├── copyright       # License information
+├── compat          # Debhelper compatibility level
+└── postinst        # Post-installation script (optional)
+```
+
+**Example `debian/control`:**
+```
+Source: pwa-forge
+Section: utils
+Priority: optional
+Maintainer: Pavel Klinger <ja@bigr.cz>
+Build-Depends: debhelper (>= 10), python3-all, dh-python, python3-setuptools
+Standards-Version: 4.5.0
+
+Package: pwa-forge
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends},
+         python3 (>= 3.10),
+         python3-click (>= 8.1),
+         python3-jinja2 (>= 3.1),
+         python3-yaml (>= 6.0),
+         python3-requests (>= 2.28),
+         xdg-utils
+Recommends: google-chrome-stable | chromium-browser | firefox
+Description: Manage Progressive Web Apps as native-feeling Linux launchers
+ pwa-forge automates the creation of isolated browser instances with custom
+ launchers, handles external link redirection to system browsers, and provides
+ comprehensive PWA lifecycle management.
+```
+
+**Build command:**
+```bash
+# Using stdeb
+python3 setup.py --command-packages=stdeb.command bdist_deb
+
+# Or using debuild
+debuild -us -uc
+```
+
+**Installation:**
+```bash
+sudo apt install ./pwa-forge_0.1.0-1_all.deb
+```
+
+---
+
+#### 2. **Flatpak** ⭐ **RECOMMENDED FOR SANDBOXING**
+
+**Pros:**
+- Works across all Linux distributions (Debian, Fedora, Arch, etc.)
+- Available via Flathub (central app store)
+- Sandboxed execution with defined permissions
+- Bundles all dependencies (no system conflicts)
+
+**Cons:**
+- More complex setup (needs runtime, SDK)
+- Larger package size (includes Python runtime)
+- Flatpak applications run in sandbox (may need filesystem permissions for ~/.local/share)
+
+**Implementation Steps:**
+1. Create `com.bigr.pwa-forge.yaml` manifest
+2. Define Python runtime (org.freedesktop.Sdk.Extension.python3)
+3. Build with `flatpak-builder`
+4. Submit to Flathub for distribution
+
+**Example manifest (`com.bigr.pwaforge.flatpak.yaml`):**
+```yaml
+app-id: com.bigr.pwaforge
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: pwa-forge
+
+finish-args:
+  # Access to home directory for .local/share and .config
+  - --filesystem=home
+  # Access to XDG directories
+  - --filesystem=xdg-config/pwa-forge:create
+  - --filesystem=xdg-data/pwa-forge:create
+  - --filesystem=xdg-data/applications:create
+  - --filesystem=xdg-data/icons:create
+  # Talk to session bus for desktop integration
+  - --socket=session-bus
+  # Allow running xdg-utils commands
+  - --share=network
+
+modules:
+  - name: pwa-forge
+    buildsystem: simple
+    build-commands:
+      - pip3 install --prefix=/app --no-deps .
+    sources:
+      - type: archive
+        url: https://github.com/bigr/pwa_forge/archive/refs/tags/v0.1.0.tar.gz
+        sha256: <checksum>
+```
+
+**Build and install:**
+```bash
+flatpak-builder --force-clean build-dir com.bigr.pwaforge.flatpak.yaml
+flatpak-builder --user --install --force-clean build-dir com.bigr.pwaforge.flatpak.yaml
+```
+
+**Run:**
+```bash
+flatpak run com.bigr.pwaforge add https://example.com
+```
+
+---
+
+#### 3. **Snap Package**
+
+**Pros:**
+- Works on Ubuntu and other distros with snapd
+- Automatic updates via Snap Store
+- Sandboxed with defined interfaces
+
+**Cons:**
+- Requires snapd (not installed by default on non-Ubuntu)
+- Larger package size
+- Slower startup due to squashfs mounting
+
+**Implementation Steps:**
+1. Create `snapcraft.yaml`
+2. Define Python base and dependencies
+3. Build with `snapcraft`
+4. Publish to Snap Store
+
+**Example `snapcraft.yaml`:**
+```yaml
+name: pwa-forge
+version: '0.1.0'
+summary: Manage Progressive Web Apps as native-feeling Linux launchers
+description: |
+  pwa-forge automates the creation of isolated browser instances with custom
+  launchers, handles external link redirection to system browsers, and provides
+  comprehensive PWA lifecycle management.
+
+base: core22
+confinement: classic  # Needs classic for filesystem access and browser launching
+grade: stable
+
+apps:
+  pwa-forge:
+    command: bin/pwa-forge
+    plugs:
+      - home
+      - desktop
+      - network
+
+parts:
+  pwa-forge:
+    plugin: python
+    source: .
+    python-packages:
+      - click>=8.1
+      - jinja2>=3.1
+      - pyyaml>=6.0
+      - requests>=2.28
+    stage-packages:
+      - xdg-utils
+```
+
+**Build and install:**
+```bash
+snapcraft
+sudo snap install pwa-forge_0.1.0_amd64.snap --classic
+```
+
+---
+
+#### 4. **Arch User Repository (AUR)**
+
+**Pros:**
+- De facto standard for Arch/Manjaro users
+- Community-maintained packages
+- Easy installation via AUR helpers (yay, paru)
+
+**Implementation Steps:**
+1. Create `PKGBUILD` file
+2. Submit to AUR
+3. Users install with `yay -S pwa-forge`
+
+**Example `PKGBUILD`:**
+```bash
+# Maintainer: Pavel Klinger <ja@bigr.cz>
+pkgname=pwa-forge
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Manage Progressive Web Apps as native-feeling Linux launchers"
+arch=('any')
+url="https://github.com/bigr/pwa_forge"
+license=('MIT')
+depends=(
+    'python>=3.10'
+    'python-click>=8.1'
+    'python-jinja>=3.1'
+    'python-yaml>=6.0'
+    'python-requests>=2.28'
+    'xdg-utils'
+)
+optdepends=(
+    'google-chrome: Chromium-based PWA support'
+    'chromium: Open-source Chromium-based PWA support'
+    'firefox: Firefox-based PWA support'
+)
+makedepends=('python-build' 'python-installer' 'python-wheel')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/bigr/pwa_forge/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$pkgname-$pkgver"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}
+```
+
+**Installation by users:**
+```bash
+yay -S pwa-forge
+```
+
+---
+
+#### 5. **Fedora/RHEL (.rpm) Package**
+
+**Pros:**
+- Native integration with dnf/yum
+- Standard for Red Hat-based distributions
+
+**Implementation Steps:**
+1. Create `.spec` file
+2. Build with `rpmbuild`
+3. Submit to Fedora Copr or host in own repo
+
+**Example `pwa-forge.spec`:**
+```spec
+Name:           pwa-forge
+Version:        0.1.0
+Release:        1%{?dist}
+Summary:        Manage Progressive Web Apps as native-feeling Linux launchers
+License:        MIT
+URL:            https://github.com/bigr/pwa_forge
+Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
+
+BuildArch:      noarch
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+Requires:       python3 >= 3.10
+Requires:       python3-click >= 8.1
+Requires:       python3-jinja2 >= 3.1
+Requires:       python3-pyyaml >= 6.0
+Requires:       python3-requests >= 2.28
+Requires:       xdg-utils
+Recommends:     chromium-browser
+Recommends:     firefox
+
+%description
+pwa-forge automates the creation of isolated browser instances with custom
+launchers, handles external link redirection to system browsers, and provides
+comprehensive PWA lifecycle management.
+
+%prep
+%autosetup
+
+%build
+%py3_build
+
+%install
+%py3_install
+
+%files
+%license LICENSE
+%doc README.md
+%{_bindir}/pwa-forge
+%{python3_sitelib}/pwa_forge/
+%{python3_sitelib}/pwa_forge-*.egg-info/
+
+%changelog
+* Thu Oct 23 2025 Pavel Klinger <ja@bigr.cz> - 0.1.0-1
+- Initial package
+```
+
+**Build:**
+```bash
+rpmbuild -ba pwa-forge.spec
+```
+
+---
+
+### Packaging Priority Recommendations
+
+**For maximum reach and ease of use:**
+
+1. **Start with:** Debian/Ubuntu .deb package + PPA
+   - Largest user base (Ubuntu, Debian, Mint, Pop!_OS, etc.)
+   - Simple to create with `stdeb`
+   - Can be hosted on GitHub releases or Launchpad PPA
+
+2. **Then add:** AUR for Arch users
+   - Very simple to create (just PKGBUILD)
+   - Community will maintain it if popular
+   - Standard practice for Arch ecosystem
+
+3. **Consider:** Flatpak for universal distribution
+   - Works everywhere, but more complex setup
+   - Good for users who want sandboxing
+   - Flathub provides central discovery
+
+4. **Optional:** RPM for Fedora/RHEL and Snap for Ubuntu
+
+### Quick Start: Creating .deb Package
+
+**Easiest approach using `stdeb`:**
+
+```bash
+# Install build dependencies
+sudo apt install python3-stdeb dh-python
+
+# Generate debian/ directory
+python3 setup.py --command-packages=stdeb.command debianize
+
+# Customize debian/control if needed
+# Then build package
+dpkg-buildpackage -us -uc
+
+# Result: ../pwa-forge_0.1.0-1_all.deb
+```
+
+**Advantages of native packages over pip:**
+- System-wide installation (no virtualenv needed)
+- Dependency tracking (apt/dnf knows what's installed)
+- Easy upgrades (`apt upgrade pwa-forge`)
+- Uninstall cleans up everything (`apt remove pwa-forge`)
+- Pre/post install scripts for system integration
+- Distribution repositories provide trust/verification
+
+---
+
 ## Development Workflow
 
 ### Setup Development Environment
@@ -1138,7 +1526,7 @@ The following must work reliably:
   - [ ] Zsh completion (use click.shell_completion)
   - [ ] Fish completion (use click.shell_completion)
   - [ ] Add --install-completion and --show-completion flags to CLI
-- [ ] `doctor` command
+- [ ] `doctor` command **[NOT STARTED]**
   - [ ] Check Python version (>= 3.10)
   - [ ] Detect available browsers (chrome, chromium, firefox, edge)
   - [ ] Check xdg-utils presence (xdg-mime, update-desktop-database)
@@ -1146,22 +1534,22 @@ The following must work reliably:
   - [ ] Check desktop environment (detect KDE/GNOME/other)
   - [ ] Validate config file if exists
   - [ ] Display summary table with PASS/FAIL/WARNING
-- [ ] Config commands implementation
-  - [ ] config get: read key from config YAML
+- [ ] Config commands implementation **[STUBS ONLY - CLI wired, no backend]**
+  - [ ] config get: read key from config YAML (supports dot notation)
   - [ ] config set: update key in config YAML, validate value
   - [ ] config list: display all config values formatted
-  - [ ] config reset: restore default config.yaml
-  - [ ] config edit: open in $EDITOR with validation
+  - [ ] config reset: restore default config.yaml (delete user file)
+  - [ ] config edit: open in $EDITOR with validation (reuse edit command logic)
 - [ ] Error handling polish
   - [ ] Define error code enum (1-10 for different error types)
   - [ ] Ensure all commands return appropriate exit codes
   - [ ] Review all error messages for actionability
   - [ ] Add suggestions to error messages (e.g., "Run: pwa-forge doctor")
-- [ ] Documentation
-  - [ ] Write USAGE.md with all commands documented
-  - [ ] Write TROUBLESHOOTING.md with FAQ
-  - [ ] Add CONTRIBUTING.md with development guide
-  - [ ] Update README badges (CI status, coverage)
+- [X] Documentation (DONE)
+  - [X] Write USAGE.md with all commands documented
+  - [X] Write TROUBLESHOOTING.md with FAQ
+  - [X] Add CONTRIBUTING.md with development guide
+  - [X] Update README badges (CI status, coverage)
 - [ ] Release process
   - [ ] Create CHANGELOG.md
   - [ ] Tag version 0.1.0
