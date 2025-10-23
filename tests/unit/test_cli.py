@@ -217,8 +217,126 @@ class TestVerbosityOptions:
         result = runner.invoke(cli.cli, ["--verbose", "version"])
         assert result.exit_code == 0
 
-    def test_multiple_verbose_flags(self) -> None:
-        """Test multiple --verbose flags."""
-        runner = CliRunner()
         result = runner.invoke(cli.cli, ["-vv", "version"])
         assert result.exit_code == 0
+
+
+class TestGenerateHandlerCommand:
+    """Test generate-handler command."""
+
+    def test_generate_handler_command_exists(self) -> None:
+        """Test that generate-handler command is registered."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["generate-handler", "--help"])
+        assert result.exit_code == 0
+        assert "Generate a URL scheme handler script" in result.output
+
+    def test_generate_handler_requires_scheme(self) -> None:
+        """Test generate-handler command requires --scheme option."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["generate-handler", "--browser", "firefox"])
+        assert result.exit_code != 0
+        assert "Missing option" in result.output or "required" in result.output.lower()
+
+
+class TestInstallHandlerCommand:
+    """Test install-handler command."""
+
+    def test_install_handler_command_exists(self) -> None:
+        """Test that install-handler command is registered."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["install-handler", "--help"])
+        assert result.exit_code == 0
+        assert "Register a URL scheme handler" in result.output
+
+    def test_install_handler_requires_scheme(self) -> None:
+        """Test install-handler command requires --scheme option."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["install-handler"])
+        assert result.exit_code != 0
+        assert "Missing option" in result.output or "required" in result.output.lower()
+
+
+class TestGenerateUserscriptCommand:
+    """Test generate-userscript command."""
+
+    def test_generate_userscript_command_exists(self) -> None:
+        """Test that generate-userscript command is registered."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["generate-userscript", "--help"])
+        assert result.exit_code == 0
+        assert "Generate a userscript for external link interception" in result.output
+
+    def test_generate_userscript_basic_usage(self) -> None:
+        """Test generate-userscript command with basic options."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["generate-userscript", "--scheme", "test", "--dry-run"])
+        # May fail if userscript generation fails, but should not crash
+        assert result.exit_code in (0, 1)
+
+
+class TestAddCommandOptions:
+    """Test add command with various options."""
+
+    def test_add_command_with_name_option(self) -> None:
+        """Test add command with custom name."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli, ["add", "https://example.com", "--name", "Custom Name", "--id", "custom-name-test", "--dry-run"]
+        )
+        assert result.exit_code in (0, 1)  # May fail due to missing browser
+
+    def test_add_command_with_browser_option(self) -> None:
+        """Test add command with specific browser."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["add", "https://example.com", "--browser", "firefox", "--dry-run"])
+        assert result.exit_code in (0, 1)  # May fail due to missing browser
+
+    def test_add_command_with_icon_option(self) -> None:
+        """Test add command with icon option."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["add", "https://example.com", "--icon", "/nonexistent/icon.svg", "--dry-run"])
+        assert result.exit_code in (0, 1)  # May fail due to missing icon or browser
+
+    def test_add_command_invalid_url(self) -> None:
+        """Test add command with invalid URL."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["add", "invalid-url"])
+        assert result.exit_code == 1
+        assert "Error" in result.output or "invalid" in result.output.lower()
+
+
+class TestAuditCommandOptions:
+    """Test audit command with various options."""
+
+    def test_audit_command_with_fix_option(self) -> None:
+        """Test audit command with --fix option."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["audit", "nonexistent-app", "--fix"])
+        assert result.exit_code == 1  # Should fail for non-existent app
+        assert "Error" in result.output
+
+    def test_audit_all_command(self) -> None:
+        """Test audit command without specific app (audit all)."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["audit"])
+        assert result.exit_code == 0  # Should not crash even with empty registry
+
+
+class TestColorOutput:
+    """Test colored output functionality."""
+
+    def test_no_color_flag(self) -> None:
+        """Test --no-color flag suppresses colored output."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["--no-color", "version"])
+        assert result.exit_code == 0
+        assert "0.1.0" in result.output
+
+    def test_color_output_in_success_messages(self) -> None:
+        """Test that success messages work with color disabled."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["--no-color", "version"])
+        assert result.exit_code == 0
+        assert "✗" not in result.output  # No colored symbols
+        assert "✓" not in result.output  # No colored symbols

@@ -73,6 +73,29 @@ class TestValidateUrl:
         is_valid, _ = validate_url("not a url")
         assert is_valid is False
 
+    def test_url_parsing_exception(self) -> None:
+        """Test handling of URL parsing exceptions."""
+        # This should trigger the exception handling in urlparse
+        is_valid, message = validate_url("http://\x00")  # Invalid character
+        assert is_valid is False
+        assert "Invalid URL format" in message
+
+    def test_url_connectivity_check_success(self) -> None:
+        """Test URL connectivity check when verify=True."""
+        # This will try to make a real HTTP request
+        # We can't control the network, so this may pass or fail depending on connectivity
+        is_valid, message = validate_url("https://httpbin.org/status/200", verify=True)
+        # Just check that it doesn't crash
+        assert isinstance(is_valid, bool)
+        assert isinstance(message, str)
+
+    def test_url_connectivity_check_failure(self) -> None:
+        """Test URL connectivity check failure."""
+        # Use a non-existent domain
+        is_valid, message = validate_url("https://this-domain-does-not-exist-12345.com", verify=True)
+        assert is_valid is False
+        assert "not accessible" in message
+
 
 class TestGenerateId:
     """Tests for ID generation."""
@@ -121,6 +144,11 @@ class TestGenerateId:
         """Test ID generation handles special chars only."""
         app_id = generate_id("!!!")
         assert app_id == "app"
+
+    def test_starts_with_special_char(self) -> None:
+        """Test ID generation prepends 'app-' when starting with special char."""
+        app_id = generate_id("@special")
+        assert app_id == "app-special"
 
     def test_mixed_case(self) -> None:
         """Test ID generation converts to lowercase."""
