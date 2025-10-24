@@ -32,24 +32,46 @@ class TestFindBrowserExecutable:
         result = _find_browser_executable("firefox", config)
         assert result == fake_browser
 
-    @patch("subprocess.run")
-    def test_find_browser_not_found(self, mock_run: MagicMock) -> None:
+    @patch("shutil.which")
+    @patch("pathlib.Path.exists")
+    def test_find_browser_not_found(self, mock_exists: MagicMock, mock_which: MagicMock) -> None:
         """Test error when browser not found."""
         config = Config()
         config.browsers.firefox = "/nonexistent/firefox"
 
-        # Mock 'which' command to fail
-        mock_run.side_effect = subprocess.CalledProcessError(1, "which")
+        # Mock all paths as non-existent and which returns None
+        mock_exists.return_value = False
+        mock_which.return_value = None
 
-        with pytest.raises(HandlerCommandError, match="Browser executable not found"):
+        with pytest.raises(HandlerCommandError, match="Browser 'firefox' not found"):
             _find_browser_executable("firefox", config)
 
-    def test_find_browser_unknown(self) -> None:
+    @patch("shutil.which")
+    @patch("pathlib.Path.exists")
+    def test_find_browser_unknown(self, mock_exists: MagicMock, mock_which: MagicMock) -> None:
         """Test error for unknown browser."""
         config = Config()
 
-        with pytest.raises(HandlerCommandError, match="Unknown browser"):
+        # Mock all paths as non-existent and which returns None
+        mock_exists.return_value = False
+        mock_which.return_value = None
+
+        with pytest.raises(HandlerCommandError, match="Browser 'unknown' not found"):
             _find_browser_executable("unknown", config)
+
+    @patch("shutil.which")
+    @patch("pathlib.Path.exists")
+    def test_find_browser_via_which(self, mock_exists: MagicMock, mock_which: MagicMock) -> None:
+        """Test finding browser via shutil.which() when not in standard locations."""
+        config = Config()
+        config.browsers.firefox = "/nonexistent/firefox"
+
+        # Mock all paths as non-existent, but which finds it
+        mock_exists.return_value = False
+        mock_which.return_value = "/snap/bin/firefox"
+
+        result = _find_browser_executable("firefox", config)
+        assert result == Path("/snap/bin/firefox")
 
 
 class TestGenerateHandler:

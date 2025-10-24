@@ -46,7 +46,8 @@ ERROR: pwa-forge requires Python>=3.10
    ```bash
    python3.10 -m venv .venv
    source .venv/bin/activate
-   pip install pwa-forge
+   pip install git+https://github.com/bigr/pwa_forge.git
+   # Or for offline: export PYTHONPATH="/path/to/pwa_forge/src:$PYTHONPATH"
    ```
 
 ### Missing Dependencies
