@@ -18,16 +18,26 @@ Turn any web app into a native-feeling Linux launcher. PWA Forge spins up isolat
 
 ## Installation
 
-```bash
-pip install pwa-forge
-```
-
-From source:
+**Note:** PWA Forge is not yet published to PyPI. Install from source:
 
 ```bash
+# Clone the repository
 git clone https://github.com/bigr/pwa_forge.git
 cd pwa_forge
 pip install -e .
+
+# Or install directly via pip with git
+pip install git+https://github.com/bigr/pwa_forge.git
+```
+
+### Offline Installation
+
+If you don't have internet access, you can run PWA Forge directly from the source directory:
+
+```bash
+# Extract the source code and add to PYTHONPATH
+export PYTHONPATH="/path/to/pwa_forge/src:$PYTHONPATH"
+python -m pwa_forge.cli --help
 ```
 
 ## Usage

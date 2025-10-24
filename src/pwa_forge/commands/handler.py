@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,11 @@ class HandlerCommandError(Exception):
 def _find_browser_executable(browser: str, config: Config) -> Path:
     """Find the executable path for a browser.
 
+    Uses multiple detection strategies:
+    1. Configured path from config.browsers
+    2. Known platform-specific install paths
+    3. System PATH search (shutil.which) with multiple executable names
+
     Args:
         browser: Browser name (chrome, chromium, firefox, edge).
         config: Configuration object.
@@ -32,36 +38,62 @@ def _find_browser_executable(browser: str, config: Config) -> Path:
     Raises:
         HandlerCommandError: If browser executable is not found.
     """
-    # Get browser path from config
+    # Strategy 1: Check configured path
     browser_path_str = getattr(config.browsers, browser, None)
-    if not browser_path_str:
-        raise HandlerCommandError(f"Unknown browser: {browser}")
+    if browser_path_str:
+        browser_path = Path(browser_path_str)
+        if browser_path.exists():
+            logger.debug(f"Found {browser} via config: {browser_path}")
+            return browser_path
 
-    browser_path = Path(browser_path_str)
+    # Strategy 2: Check known install locations
+    known_paths = {
+        "chrome": [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/snap/bin/chromium",
+            "/usr/local/bin/google-chrome",
+        ],
+        "chromium": [
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium",
+        ],
+        "firefox": [
+            "/usr/bin/firefox",
+            "/snap/bin/firefox",
+            "/usr/local/bin/firefox",
+        ],
+        "edge": [
+            "/usr/bin/microsoft-edge",
+            "/opt/microsoft/msedge/microsoft-edge",
+        ],
+    }
 
-    # Check if browser exists
-    if not browser_path.exists():
-        # Try to find it with 'which'
-        try:
-            result = subprocess.run(
-                ["which", browser],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            browser_path = Path(result.stdout.strip())
-            if browser_path.exists():
-                logger.info(f"Found {browser} at {browser_path}")
-                return browser_path
-        except subprocess.CalledProcessError:
-            pass
+    for path_str in known_paths.get(browser, []):
+        path = Path(path_str)
+        if path.exists():
+            logger.debug(f"Found {browser} at known location: {path}")
+            return path
 
-        raise HandlerCommandError(
-            f"Browser executable not found: {browser_path_str}\n"
-            f"  → Install {browser} or use a different browser with --browser"
-        )
+    # Strategy 3: Search system PATH with multiple executable names
+    executable_names = {
+        "chrome": ["google-chrome-stable", "google-chrome", "chrome"],
+        "chromium": ["chromium-browser", "chromium"],
+        "firefox": ["firefox"],
+        "edge": ["microsoft-edge", "edge"],
+    }
 
-    return browser_path
+    for name in executable_names.get(browser, [browser]):
+        found_path = shutil.which(name)
+        if found_path:
+            logger.info(f"Found {browser} in PATH as '{name}': {found_path}")
+            return Path(found_path)
+
+    # Not found
+    raise HandlerCommandError(
+        f"Browser '{browser}' not found\n" f"  → Install {browser} or use a different browser with --browser"
+    )
 
 
 def generate_handler(

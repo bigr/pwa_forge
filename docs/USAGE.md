@@ -36,6 +36,14 @@ pip install -e .
 pip install git+https://github.com/bigr/pwa_forge.git
 ```
 
+**Offline Installation:** If you don't have internet access, you can run PWA Forge directly:
+
+```bash
+# Extract source and add to PYTHONPATH
+export PYTHONPATH="/path/to/pwa_forge/src:$PYTHONPATH"
+python -m pwa_forge.cli --help
+```
+
 ### Create Your First PWA
 
 ```bash
