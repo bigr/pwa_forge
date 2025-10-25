@@ -266,7 +266,7 @@ def config_edit(config: Config) -> None:
 
     if not editor:
         raise ConfigCommandError(
-            "$EDITOR environment variable not set and no fallback editor found. " "Set EDITOR or install vi/nano/vim."
+            "$EDITOR environment variable not set and no fallback editor found. Set EDITOR or install vi/nano/vim."
         )
 
     # Create config file with defaults if it doesn't exist

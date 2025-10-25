@@ -689,7 +689,7 @@ class TestAddCommandIntegration:
         assert str(custom_browser) in content
 
     def test_add_with_profile_directory_creation(self, test_config: IsolatedConfig) -> None:
-        """Test add creates profile directory."""
+        """Test add creates profile directory with correct permissions."""
         result = add_app(
             url="https://profile-test.com",
             config=test_config,
@@ -705,6 +705,12 @@ class TestAddCommandIntegration:
 
         # Verify it's under the apps directory
         assert profile_path == test_config.directories.apps / "profile-test"
+
+        # Verify permissions are set correctly (0o755 = rwxr-xr-x)
+        # This ensures Chrome/Chromium can write to the directory
+        mode = profile_path.stat().st_mode
+        permissions = mode & 0o777
+        assert permissions == 0o755, f"Expected 0o755, got {oct(permissions)}"
 
     def test_add_with_wm_class_generation(self, test_config: IsolatedConfig) -> None:
         """Test add generates WM class from app name."""

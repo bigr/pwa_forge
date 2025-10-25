@@ -631,6 +631,54 @@ pwa-forge add https://example.com --id old-app
 cp -r ~/backup/old-app-profile/* ~/.config/pwa-forge/apps/old-app/
 ```
 
+### Chrome/Chromium SingletonLock Permission Error
+
+**Problem:** PWA fails to launch with permission error.
+
+```
+Failed to create /home/user/.local/share/pwa-forge/apps/app-name/SingletonLock: Permission denied (13)
+```
+
+**Cause:** Profile directory has incorrect permissions preventing Chrome/Chromium from creating lock files.
+
+**Solutions:**
+
+**Option 1: Fix permissions on existing PWA**
+
+```bash
+# Fix profile directory permissions
+chmod -R 755 ~/.local/share/pwa-forge/apps/app-name/
+
+# Verify permissions
+ls -ld ~/.local/share/pwa-forge/apps/app-name/
+# Should show: drwxr-xr-x (755)
+
+# Try launching again
+```
+
+**Option 2: Recreate PWA (if using older version)**
+
+PWA Forge versions prior to the fix may have created directories with incorrect permissions:
+
+```bash
+# Remove and recreate (preserves profile data by default)
+pwa-forge remove app-name
+pwa-forge add https://example.com --id app-name
+
+# Or if you want fresh start
+pwa-forge remove app-name --remove-profile
+pwa-forge add https://example.com --id app-name
+```
+
+**Option 3: Fix all profile directories at once**
+
+```bash
+# Fix all PWA profile permissions
+chmod -R 755 ~/.local/share/pwa-forge/apps/
+```
+
+**Note:** This issue was fixed in PWA Forge to ensure all profile directories are created with correct permissions (755/rwxr-xr-x) automatically.
+
 ## Permission Issues
 
 ### Cannot Write to ~/.local/bin
