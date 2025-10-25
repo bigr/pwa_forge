@@ -6,6 +6,10 @@ Solutions to common issues when using PWA Forge.
 
 - [Installation Issues](#installation-issues)
 - [PWA Creation Issues](#pwa-creation-issues)
+  - [⚠️ Snap-Confined Browsers Not Supported](#️-snap-confined-browsers-not-supported)
+  - [Browser Executable Not Found](#browser-executable-not-found)
+  - [Firefox Not Supported for PWAs](#firefox-not-supported-for-pwas)
+  - [Invalid URL Error](#invalid-url-error)
 - [Launch Issues](#launch-issues)
 - [External Link Handling](#external-link-handling)
 - [Desktop Integration](#desktop-integration)
@@ -72,6 +76,48 @@ pip install -e ".[dev]"
 
 ## PWA Creation Issues
 
+### ⚠️ Snap-Confined Browsers Not Supported
+
+**Problem:** Chromium from snap (Ubuntu default) doesn't work with PWA Forge.
+
+```
+Error: Browser cannot write to profile directory: /path/to/profile
+  → This often happens with snap-confined browsers
+```
+
+**Why:**
+
+Snap confinement prevents browsers from writing to user home directories, causing:
+- SingletonLock permission errors
+- Profile initialization failures
+- PWA launch failures
+
+**Solution: Install system-packaged browser instead**
+
+```bash
+# Ubuntu/Debian - Install Chromium from system packages (NOT snap)
+sudo apt remove chromium chromium-browser  # Remove snap version if installed
+sudo apt install chromium-browser          # Install system package
+
+# Or install Google Chrome (recommended)
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+
+# Fedora
+sudo dnf install chromium
+
+# Arch
+sudo pacman -S chromium
+```
+
+**Verify installation:**
+```bash
+# Should show system package location (NOT /snap/...)
+which chromium-browser
+# or
+which google-chrome-stable
+```
+
 ### Browser Executable Not Found
 
 **Problem:** Error when creating PWA.
@@ -91,7 +137,7 @@ Error: Browser 'chrome' not found.
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo dpkg -i google-chrome-stable_current_amd64.deb
 
-# Chromium
+# Chromium (system package, NOT snap)
 sudo apt install chromium-browser  # Ubuntu/Debian
 sudo dnf install chromium           # Fedora
 
@@ -215,6 +261,19 @@ chmod 755 ~/.local/bin
 ```
 
 ## Launch Issues
+
+### PWA Fails to Launch - SingletonLock Error
+
+**Problem:** PWA created successfully but fails to launch with SingletonLock error.
+
+```
+[FATAL:singleton.cc:XXX] Check failed: !static_cast<bool>(
+Lock file is already locked by another process
+```
+
+**Cause:** Browser cannot write to profile directory (usually snap confinement).
+
+**Solution:** See [Snap-Confined Browsers Not Supported](#️-snap-confined-browsers-not-supported) section above.
 
 ### PWA Doesn't Appear in Application Menu
 

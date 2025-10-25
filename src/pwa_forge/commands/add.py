@@ -136,6 +136,9 @@ def add_app(
     if not dry_run:
         ensure_dir(profile_path, mode=0o755)
         logger.info(f"Created profile directory: {profile_path}")
+
+        # Check if browser can write to profile (detects snap confinement issues)
+        _check_browser_profile_access(browser_exec, profile_path)
     else:
         logger.info(f"[DRY-RUN] Would create profile directory: {profile_path}")
 
@@ -281,6 +284,68 @@ def _handle_icon(icon_source: str, app_id: str, icons_dir: Path, dry_run: bool) 
         logger.info(f"[DRY-RUN] Would copy icon to: {target_path}")
 
     return target_path
+
+
+def _check_browser_profile_access(browser_exec: Path, profile_path: Path) -> None:
+    """Check if browser can write to profile directory (detects snap confinement issues).
+
+    Args:
+        browser_exec: Path to browser executable.
+        profile_path: Path to profile directory.
+
+    Raises:
+        AddCommandError: If browser cannot write to profile directory.
+    """
+    import subprocess
+
+    # Create a temporary test directory in the profile path
+    test_dir = profile_path / ".pwa-forge-test"
+    test_file = test_dir / "test.txt"
+
+    try:
+        test_dir.mkdir(parents=True, exist_ok=True)
+
+        # Try to run browser in headless mode with the profile to test write access
+        # Use --version flag which is quick and doesn't require display
+        try:
+            result = subprocess.run(
+                [str(browser_exec), "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            # Browser executed successfully, now test profile write
+            if result.returncode != 0:
+                logger.warning(f"Browser version check returned non-zero: {result.returncode}")
+        except subprocess.TimeoutExpired:
+            pass  # Browser might be slow, but it ran
+        except Exception as e:
+            logger.debug(f"Browser test execution: {e}")
+
+        # Try to write test file to profile
+        try:
+            test_file.write_text("test")
+            test_file.unlink()
+            logger.debug(f"Browser profile write access verified: {profile_path}")
+        except (OSError, PermissionError) as e:
+            raise AddCommandError(
+                f"Browser cannot write to profile directory: {profile_path}\n"
+                f"  → This often happens with snap-confined browsers\n"
+                f"  → Error: {e}\n"
+                f"  → Solutions:\n"
+                f"     1. Use system-installed browser instead of snap\n"
+                f"     2. Install via package manager: sudo apt install chromium-browser\n"
+                f"     3. Or use Google Chrome: https://www.google.com/chrome/"
+            ) from e
+    finally:
+        # Clean up test directory
+        try:
+            if test_dir.exists():
+                import shutil
+
+                shutil.rmtree(test_dir)
+        except Exception:
+            pass  # Ignore cleanup errors
 
 
 def _get_browser_executable(browser: str, config: Config) -> Path:

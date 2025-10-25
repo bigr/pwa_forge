@@ -46,6 +46,49 @@ from pwa_forge.config import load_config
 from pwa_forge.utils.logger import setup_logging
 
 
+class BrowserChoice(click.Choice[str]):
+    """Custom Click choice type for browsers with helpful error messages."""
+
+    def convert(self, value: str, param: click.Parameter | None, ctx: click.Context | None) -> str:
+        """Convert and validate browser choice with user-friendly error messages."""
+        # Check for Firefox specifically
+        if value.lower() == "firefox":
+            self.fail(
+                "Firefox is not supported for PWA creation.\n\n"
+                "Why: Firefox lacks native app/SSB (Site-Specific Browser) mode.\n"
+                "      It cannot create true isolated PWA windows like Chromium-based browsers.\n\n"
+                "Supported browsers:\n"
+                "  • Google Chrome (recommended)\n"
+                "  • Chromium (system package, NOT snap)\n"
+                "  • Microsoft Edge\n\n"
+                "Install Chromium:\n"
+                "  Ubuntu/Debian: sudo apt install chromium-browser\n"
+                "  Fedora: sudo dnf install chromium\n"
+                "  Arch: sudo pacman -S chromium\n\n"
+                "Download Chrome: https://www.google.com/chrome/",
+                param,
+                ctx,
+            )
+
+        # Call parent validation
+        try:
+            result = super().convert(value, param, ctx)
+            return result
+        except click.BadParameter:
+            # Provide helpful message for invalid choices
+            self.fail(
+                f"'{value}' is not a supported browser.\n\n"
+                f"Supported browsers:\n"
+                f"  • chrome\n"
+                f"  • chromium\n"
+                f"  • edge\n\n"
+                f"Note: Snap-confined browsers (Ubuntu default) don't work.\n"
+                f"      Install system package instead: sudo apt install chromium-browser",
+                param,
+                ctx,
+            )
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--verbose",
@@ -173,7 +216,7 @@ def completion(ctx: click.Context, shell: str) -> None:
 @click.option("--id", "app_id", help="Unique identifier (auto-generated from name)")
 @click.option(
     "--browser",
-    type=click.Choice(["chrome", "chromium", "edge"]),
+    type=BrowserChoice(["chrome", "chromium", "edge"]),
     default="chrome",
     help="Browser engine to use (Chromium-based only)",
 )
@@ -242,10 +285,16 @@ def add(
             click.echo("\n[DRY-RUN] No changes were made.")
 
     except AddCommandError as e:
-        if not ctx.obj.get("no_color"):
-            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        error_msg = str(e)
+        no_color = ctx.obj.get("no_color")
+
+        # Format error message with colors if not disabled
+        if not no_color:
+            click.secho("✗ Error:", fg="red", err=True, nl=False)
+            click.echo(f" {error_msg}", err=True)
         else:
-            click.echo(f"✗ Error: {e}", err=True)
+            click.echo(f"✗ Error: {error_msg}", err=True)
+
         ctx.exit(1)
 
 
@@ -1038,7 +1087,17 @@ def _read_package_version() -> str:
 
 def main(argv: list[str] | None = None) -> None:
     """Execute the CLI entry point."""
-    cli.main(args=argv, prog_name="pwa-forge", standalone_mode=False)  # type: ignore[attr-defined,unused-ignore]
+    try:
+        cli.main(args=argv, prog_name="pwa-forge", standalone_mode=False)  # type: ignore[attr-defined,unused-ignore]
+    except click.BadParameter as e:
+        # Click's BadParameter is already formatted with helpful messages
+        # Just display it without traceback
+        click.echo(f"Error: {e.format_message()}", err=True)
+        raise SystemExit(2) from None
+    except click.ClickException as e:
+        # Handle other Click exceptions gracefully
+        e.show()
+        raise SystemExit(e.exit_code) from None
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience entry point
