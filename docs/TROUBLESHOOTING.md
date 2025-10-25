@@ -79,15 +79,15 @@ pip install -e ".[dev]"
 ```
 Error: Browser 'chrome' not found.
 → Install Chrome: sudo apt install google-chrome-stable
-→ Or use a different browser: pwa-forge add --browser firefox <url>
+→ Or use a different browser: pwa-forge add --browser chromium <url>
 ```
 
 **Solutions:**
 
-**Option 1: Install the browser**
+**Option 1: Install a supported browser**
 
 ```bash
-# Chrome
+# Chrome (recommended)
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo dpkg -i google-chrome-stable_current_amd64.deb
 
@@ -95,15 +95,16 @@ sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt install chromium-browser  # Ubuntu/Debian
 sudo dnf install chromium           # Fedora
 
-# Firefox
-sudo apt install firefox            # Ubuntu/Debian
-sudo dnf install firefox            # Fedora
+# Microsoft Edge
+# Download from: https://www.microsoft.com/en-us/edge
 ```
 
-**Option 2: Use a different browser**
+**Option 2: Use a different Chromium-based browser**
 
 ```bash
-pwa-forge add https://example.com --browser firefox
+pwa-forge add https://example.com --browser chromium
+# or
+pwa-forge add https://example.com --browser edge
 ```
 
 **Option 3: Configure custom browser path**
@@ -111,6 +112,35 @@ pwa-forge add https://example.com --browser firefox
 ```bash
 pwa-forge config set browsers.chrome /snap/bin/chromium
 ```
+
+### Firefox Not Supported for PWAs
+
+**Problem:** Error when trying to use Firefox.
+
+```
+Error: Firefox is not supported for PWA creation.
+```
+
+**Explanation:**
+
+Firefox lacks support for app/SSB mode (`--app` flag) which is required for true PWA functionality. PWA Forge only supports Chromium-based browsers for creating PWAs.
+
+**Solution:**
+
+Use Chrome, Chromium, or Edge instead:
+
+```bash
+# Use Chrome
+pwa-forge add https://example.com --browser chrome
+
+# Use Chromium
+pwa-forge add https://example.com --browser chromium
+
+# Use Edge
+pwa-forge add https://example.com --browser edge
+```
+
+**Note:** Firefox can still be used for opening external links via URL handlers (`pwa-forge generate-handler --browser firefox`).
 
 ### Invalid URL Error
 

@@ -877,3 +877,19 @@ class TestAddCommandIntegration:
                 app_id="duplicate-test",
                 dry_run=False,
             )
+
+    def test_add_error_handling_firefox_not_supported(self, test_config: IsolatedConfig) -> None:
+        """Test add rejects Firefox browser."""
+        import pytest
+        from pwa_forge.commands.add import AddCommandError
+
+        # Try to add PWA with Firefox (not supported)
+        with pytest.raises(AddCommandError, match="Firefox is not supported"):
+            add_app(
+                url="https://example.com",
+                config=test_config,
+                name="Firefox Test",
+                app_id="firefox-test",
+                browser="firefox",
+                dry_run=False,
+            )

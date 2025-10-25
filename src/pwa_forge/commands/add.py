@@ -66,6 +66,15 @@ def add_app(
     """
     logger.info(f"Adding PWA for URL: {url}")
 
+    # Validate browser (only Chromium-based browsers support PWA mode)
+    if browser == "firefox":
+        raise AddCommandError(
+            "Firefox is not supported for PWA creation.\n"
+            "  → Firefox lacks support for app mode (--app flag)\n"
+            "  → Use Chrome, Chromium, or Edge instead:\n"
+            "     pwa-forge add <url> --browser chrome"
+        )
+
     # Validate URL
     is_valid, status, message = validate_url(url, verify=False)
     if not is_valid:

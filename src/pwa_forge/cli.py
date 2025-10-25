@@ -173,9 +173,9 @@ def completion(ctx: click.Context, shell: str) -> None:
 @click.option("--id", "app_id", help="Unique identifier (auto-generated from name)")
 @click.option(
     "--browser",
-    type=click.Choice(["chrome", "chromium", "firefox", "edge"]),
+    type=click.Choice(["chrome", "chromium", "edge"]),
     default="chrome",
-    help="Browser engine to use",
+    help="Browser engine to use (Chromium-based only)",
 )
 @click.option("--profile", type=click.Path(), help="Custom profile directory")
 @click.option("--icon", type=click.Path(exists=True), help="Path to application icon")

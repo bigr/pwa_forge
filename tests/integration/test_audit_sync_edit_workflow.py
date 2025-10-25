@@ -465,26 +465,26 @@ class TestAuditSyncEditWorkflow:
         # Mock subprocess for xdg-utils
         monkeypatch.setattr("subprocess.run", MagicMock(return_value=MagicMock(returncode=0)))
 
-        # Add PWA with firefox browser
+        # Add PWA with chrome browser
         result = add_app(
             url="https://browser-test.com",
             config=config,
             name="Browser Test",
             app_id="browser-test",
-            browser="firefox",
+            browser="chrome",
             dry_run=False,
         )
 
         # Set browser config to a non-existent path
-        config.browsers.firefox = "/nonexistent/firefox"
+        config.browsers.chrome = "/nonexistent/chrome"
 
-        # Mock shutil.which to also return None for firefox
+        # Mock shutil.which to also return None for chrome
         import shutil
 
         original_which = shutil.which
 
         def mock_which(cmd: str) -> str | None:
-            if cmd == "firefox":
+            if cmd in ("google-chrome-stable", "google-chrome", "chrome"):
                 return None
             return original_which(cmd)
 
@@ -497,7 +497,7 @@ class TestAuditSyncEditWorkflow:
         browser_check = next((c for c in app_result["checks"] if "Browser executable" in c["name"]), None)
         assert browser_check is not None
         assert browser_check["status"] == "FAIL"
-        assert "Browser not found: firefox" in browser_check["message"]
+        assert "Browser not found: chrome" in browser_check["message"]
 
     def test_audit_icon_file_checks(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test audit checks icon file existence."""

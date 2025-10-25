@@ -4,7 +4,7 @@ Turn any web app into a native-feeling Linux launcher. PWA Forge spins up isolat
 
 ## Features
 
-- Isolated Chromium- or Firefox-based profiles per app
+- Isolated Chromium-based profiles per app
 - `.desktop` launchers, wrapper scripts, and icon management
 - Smart external link routing with handler scripts and userscripts
 - Registry, audit, and sync commands to keep installs tidy
@@ -13,7 +13,8 @@ Turn any web app into a native-feeling Linux launcher. PWA Forge spins up isolat
 
 - Linux desktop with XDG tooling (KDE Plasma, GNOME, etc.)
 - Python 3.10+
-- One of: Google Chrome, Chromium, or Firefox
+- **Chromium-based browser**: Google Chrome, Chromium, or Microsoft Edge
+  - *Note: Firefox is not supported for PWA creation (lacks app mode)*
 - `xdg-utils` for desktop integration commands
 
 ## Installation

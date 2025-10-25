@@ -340,7 +340,7 @@ class TestAddCommandOptions:
     def test_add_command_with_browser_option(self) -> None:
         """Test add command with specific browser."""
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ["add", "https://example.com", "--browser", "firefox", "--dry-run"])
+        result = runner.invoke(cli.cli, ["add", "https://example.com", "--browser", "chromium", "--dry-run"])
         assert result.exit_code in (0, 1)  # May fail due to missing browser
 
     def test_add_command_with_icon_option(self) -> None:
