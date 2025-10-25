@@ -850,6 +850,13 @@ pip install -e .
 pip install git+https://github.com/bigr/pwa_forge.git
 ```
 
+#### Offline Installation (No Internet)
+```bash
+# Extract source code and run directly via PYTHONPATH
+export PYTHONPATH="/path/to/pwa_forge/src:$PYTHONPATH"
+python -m pwa_forge.cli --help
+```
+
 #### From PyPI (Future)
 ```bash
 pip install pwa-forge  # Not yet available
@@ -881,7 +888,7 @@ pwa-forge config set default_browser chrome
 
 ## System Packaging Options
 
-**pwa-forge** is currently distributed via PyPI (`pip install pwa-forge`). For broader distribution and easier system integration, consider packaging for native package managers.
+**pwa-forge** is currently distributed via GitHub and can be installed from source. For broader distribution and easier system integration, future releases could be packaged for native package managers and PyPI.
 
 ### Recommended Packaging Formats
 
