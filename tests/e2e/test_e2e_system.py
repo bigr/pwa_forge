@@ -797,8 +797,8 @@ class TestE2EBrowserCompatibility:
         self, e2e_config: Config, mock_browser_executable: Path, tmp_path: Path
     ) -> None:
         """Test add command with different browser configurations."""
-        # Create different browser executables
-        browsers = ["chrome", "firefox", "chromium"]
+        # Create different browser executables (Chromium-based only)
+        browsers = ["chrome", "chromium", "edge"]
         browser_paths = {}
 
         for browser in browsers:

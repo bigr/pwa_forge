@@ -101,36 +101,41 @@ def _check_python_version() -> dict[str, str]:
 def _check_browsers(config: Config) -> list[dict[str, str]]:
     """Check availability of browser executables."""
     checks = []
-    browser_paths = {
+    # PWA-compatible browsers (Chromium-based only)
+    pwa_browsers = {
         "chrome": config.browsers.chrome,
         "chromium": config.browsers.chromium,
-        "firefox": config.browsers.firefox,
         "edge": config.browsers.edge,
     }
+    # Firefox only for URL handlers
+    other_browsers = {
+        "firefox": config.browsers.firefox,
+    }
 
-    found_any = False
+    found_pwa_browser = False
 
-    for browser_name, browser_path in browser_paths.items():
+    # Check Chromium-based browsers (PWA-compatible)
+    for browser_name, browser_path in pwa_browsers.items():
         path = Path(browser_path)
 
         if path.exists() and path.is_file():
-            found_any = True
+            found_pwa_browser = True
             checks.append({
                 "name": f"Browser: {browser_name}",
                 "status": "PASS",
                 "message": str(path),
-                "details": f"{browser_name.capitalize()} is available",
+                "details": f"{browser_name.capitalize()} is available (PWA-compatible)",
             })
         else:
             # Try to find it in PATH
             found_path = shutil.which(browser_name)
             if found_path:
-                found_any = True
+                found_pwa_browser = True
                 checks.append({
                     "name": f"Browser: {browser_name}",
                     "status": "PASS",
                     "message": found_path,
-                    "details": f"{browser_name.capitalize()} found in PATH",
+                    "details": f"{browser_name.capitalize()} found in PATH (PWA-compatible)",
                 })
             else:
                 checks.append({
@@ -140,12 +145,33 @@ def _check_browsers(config: Config) -> list[dict[str, str]]:
                     "details": f"Install {browser_name} or update config path",
                 })
 
-    if not found_any:
+    # Check other browsers (handlers only)
+    for browser_name, browser_path in other_browsers.items():
+        path = Path(browser_path)
+
+        if path.exists() and path.is_file():
+            checks.append({
+                "name": f"Browser: {browser_name}",
+                "status": "INFO",
+                "message": str(path),
+                "details": f"{browser_name.capitalize()} available (URL handlers only, not PWA-compatible)",
+            })
+        else:
+            found_path = shutil.which(browser_name)
+            if found_path:
+                checks.append({
+                    "name": f"Browser: {browser_name}",
+                    "status": "INFO",
+                    "message": found_path,
+                    "details": f"{browser_name.capitalize()} found (URL handlers only, not PWA-compatible)",
+                })
+
+    if not found_pwa_browser:
         checks.append({
-            "name": "Browser Availability",
+            "name": "PWA Browser Availability",
             "status": "FAIL",
-            "message": "No browsers found",
-            "details": "At least one browser is required (chrome, chromium, firefox, or edge)",
+            "message": "No PWA-compatible browsers found",
+            "details": "At least one Chromium-based browser is required (chrome, chromium, or edge)",
         })
 
     return checks
@@ -332,7 +358,7 @@ def _check_playwright() -> dict[str, str]:
         # Try to check if browsers are installed
         try:
             result = subprocess.run(
-                ["python", "-m", "playwright", "--version"],
+                ["python3", "-m", "playwright", "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5,

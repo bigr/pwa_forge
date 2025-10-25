@@ -11,6 +11,7 @@ from typing import Any
 from pwa_forge.config import Config
 from pwa_forge.registry import Registry
 from pwa_forge.templates import render_template
+from pwa_forge.utils.paths import ensure_dir
 from pwa_forge.validation import (
     ValidationStatus,
     extract_name_from_url,
@@ -64,6 +65,15 @@ def add_app(
         AddCommandError: If the operation fails.
     """
     logger.info(f"Adding PWA for URL: {url}")
+
+    # Validate browser (only Chromium-based browsers support PWA mode)
+    if browser == "firefox":
+        raise AddCommandError(
+            "Firefox is not supported for PWA creation.\n"
+            "  → Firefox lacks support for app mode (--app flag)\n"
+            "  → Use Chrome, Chromium, or Edge instead:\n"
+            "     pwa-forge add <url> --browser chrome"
+        )
 
     # Validate URL
     is_valid, status, message = validate_url(url, verify=False)
@@ -124,7 +134,7 @@ def add_app(
 
     # Create profile directory
     if not dry_run:
-        profile_path.mkdir(parents=True, exist_ok=True)
+        ensure_dir(profile_path, mode=0o755)
         logger.info(f"Created profile directory: {profile_path}")
     else:
         logger.info(f"[DRY-RUN] Would create profile directory: {profile_path}")

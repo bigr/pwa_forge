@@ -92,7 +92,7 @@ def _find_browser_executable(browser: str, config: Config) -> Path:
 
     # Not found
     raise HandlerCommandError(
-        f"Browser '{browser}' not found\n" f"  → Install {browser} or use a different browser with --browser"
+        f"Browser '{browser}' not found\n  → Install {browser} or use a different browser with --browser"
     )
 
 

@@ -53,7 +53,7 @@ class TestDoctorCommand:
             assert "status" in result
             assert "message" in result
             assert "details" in result
-            assert result["status"] in ["PASS", "WARNING", "FAIL"]
+            assert result["status"] in ["PASS", "WARNING", "FAIL", "INFO"]
 
     def test_xdg_tools_check(self) -> None:
         """Test XDG tools check."""
