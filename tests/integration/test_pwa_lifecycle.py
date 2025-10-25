@@ -893,3 +893,35 @@ class TestAddCommandIntegration:
                 browser="firefox",
                 dry_run=False,
             )
+
+    def test_add_detects_browser_profile_write_failure(
+        self, test_config: IsolatedConfig, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test add detects when browser cannot write to profile directory."""
+        from pathlib import Path
+        from typing import Any
+        from unittest.mock import patch
+
+        import pytest
+        from pwa_forge.commands.add import AddCommandError
+
+        # Mock write_text to raise PermissionError for test files
+        original_write_text = Path.write_text
+
+        def mock_write_text(self: Path, *args: Any, **kwargs: Any) -> None:
+            if ".pwa-forge-test" in str(self):
+                raise PermissionError("Permission denied")
+            return original_write_text(self, *args, **kwargs)
+
+        with (
+            patch.object(Path, "write_text", mock_write_text),
+            pytest.raises(AddCommandError, match="Browser cannot write to profile directory"),
+        ):
+            add_app(
+                url="https://example.com",
+                config=test_config,
+                name="Profile Write Test",
+                app_id="profile-write-test",
+                browser="chrome",
+                dry_run=False,
+            )
