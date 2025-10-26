@@ -143,6 +143,9 @@ def add_app(
         logger.info(f"[DRY-RUN] Would create profile directory: {profile_path}")
 
     # Generate wrapper script
+    # Use custom ozone_platform if provided in flags, otherwise default to x11
+    ozone_platform = parsed_flags.get("ozone_platform") or "x11"
+
     wrapper_content = render_template(
         "wrapper.j2",
         {
@@ -150,7 +153,7 @@ def add_app(
             "id": app_id,
             "browser_exec": str(browser_exec),
             "wm_class": wm_class,
-            "ozone_platform": parsed_flags.get("ozone_platform", "auto"),
+            "ozone_platform": ozone_platform,
             "url": url,
             "profile": str(profile_path),
             "enable_features": parsed_flags.get("enable_features", []),
@@ -404,7 +407,8 @@ def _parse_chrome_flags(flags_str: str) -> dict[str, Any]:
     """Parse Chrome flags string.
 
     Args:
-        flags_str: Semicolon-separated flags string (e.g., "enable-features=A,B;disable-features=C").
+        flags_str: Semicolon-separated flags string
+            (e.g., "enable-features=A,B;disable-features=C;ozone-platform=wayland").
 
     Returns:
         Dictionary with parsed flags.
@@ -412,6 +416,7 @@ def _parse_chrome_flags(flags_str: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "enable_features": [],
         "disable_features": [],
+        "ozone_platform": None,
         "additional": "",
     }
 
@@ -427,6 +432,8 @@ def _parse_chrome_flags(flags_str: str) -> dict[str, Any]:
         elif flag.startswith("disable-features="):
             features = flag.replace("disable-features=", "").split(",")
             result["disable_features"] = [f.strip() for f in features if f.strip()]
+        elif flag.startswith("ozone-platform="):
+            result["ozone_platform"] = flag.replace("ozone-platform=", "").strip()
         else:
             # Unknown flags go to additional
             if result["additional"]:

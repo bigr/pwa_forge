@@ -925,3 +925,39 @@ class TestAddCommandIntegration:
                 browser="chrome",
                 dry_run=False,
             )
+
+    def test_add_uses_x11_ozone_platform_by_default(self, test_config: IsolatedConfig) -> None:
+        """Test that add command uses x11 ozone platform by default."""
+        add_app(
+            url="https://example.com",
+            config=test_config,
+            name="Ozone Platform Test",
+            app_id="ozone-test",
+            browser="chrome",
+            dry_run=False,
+        )
+
+        # Check wrapper script contains x11 ozone platform
+        wrapper_path = test_config.wrappers_dir / "ozone-test"
+        wrapper_content = wrapper_path.read_text()
+
+        assert "--ozone-platform=x11" in wrapper_content
+        assert "--ozone-platform=auto" not in wrapper_content
+
+    def test_add_allows_custom_ozone_platform(self, test_config: IsolatedConfig) -> None:
+        """Test that add command allows custom ozone platform via chrome flags."""
+        add_app(
+            url="https://example.com",
+            config=test_config,
+            name="Custom Ozone Test",
+            app_id="custom-ozone-test",
+            browser="chrome",
+            chrome_flags="ozone-platform=wayland",
+            dry_run=False,
+        )
+
+        # Check wrapper script contains wayland ozone platform
+        wrapper_path = test_config.wrappers_dir / "custom-ozone-test"
+        wrapper_content = wrapper_path.read_text()
+
+        assert "--ozone-platform=wayland" in wrapper_content
