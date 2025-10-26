@@ -11,6 +11,9 @@ Solutions to common issues when using PWA Forge.
   - [Firefox Not Supported for PWAs](#firefox-not-supported-for-pwas)
   - [Invalid URL Error](#invalid-url-error)
 - [Launch Issues](#launch-issues)
+  - [PWA Fails to Launch - SingletonLock Error](#pwa-fails-to-launch---singletonlock-error)
+  - [PWA Fails to Launch - Invalid Ozone Platform Error](#pwa-fails-to-launch---invalid-ozone-platform-error)
+  - [PWA Doesn't Appear in Application Menu](#pwa-doesnt-appear-in-application-menu)
 - [External Link Handling](#external-link-handling)
 - [Desktop Integration](#desktop-integration)
 - [Browser Issues](#browser-issues)
@@ -274,6 +277,37 @@ Lock file is already locked by another process
 **Cause:** Browser cannot write to profile directory (usually snap confinement).
 
 **Solution:** See [Snap-Confined Browsers Not Supported](#️-snap-confined-browsers-not-supported) section above.
+
+### PWA Fails to Launch - Invalid Ozone Platform Error
+
+**Problem:** PWA fails to launch with ozone platform error.
+
+```
+[FATAL:ui/ozone/platform_selection.cc:46] Invalid ozone platform: auto
+```
+
+**Cause:** The `--ozone-platform=auto` flag is incompatible with your system configuration.
+
+**Solution:**
+
+PWA Forge now defaults to `--ozone-platform=x11` which is more compatible. If you have an existing PWA with this issue:
+
+```bash
+# Recreate the PWA (this will update the wrapper script)
+pwa-forge remove <app-id>
+pwa-forge add <url> --name "<name>" --id <app-id>
+
+# Or manually edit the wrapper script
+nano ~/.local/bin/pwa-forge-wrappers/<app-id>
+# Change: --ozone-platform=auto
+# To:     --ozone-platform=x11
+```
+
+If you need Wayland support, you can specify it when creating the PWA:
+
+```bash
+pwa-forge add <url> --chrome-flags "ozone-platform=wayland"
+```
 
 ### PWA Doesn't Appear in Application Menu
 

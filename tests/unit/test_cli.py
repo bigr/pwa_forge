@@ -357,6 +357,25 @@ class TestAddCommandOptions:
         assert result.exit_code == 1
         assert "Error" in result.output or "invalid" in result.output.lower()
 
+    def test_add_command_firefox_not_supported(self) -> None:
+        """Test add command rejects Firefox with helpful error message."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["add", "https://example.com", "--browser", "firefox"])
+        assert result.exit_code == 2
+        assert "Firefox is not supported" in result.output
+        assert "app/SSB" in result.output or "Site-Specific Browser" in result.output
+        assert "Google Chrome" in result.output or "Chromium" in result.output
+
+    def test_add_command_invalid_browser(self) -> None:
+        """Test add command rejects invalid browser with helpful error message."""
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ["add", "https://example.com", "--browser", "safari"])
+        assert result.exit_code == 2
+        assert "not a supported browser" in result.output
+        assert "chrome" in result.output
+        assert "chromium" in result.output
+        assert "edge" in result.output
+
 
 class TestAuditCommandOptions:
     """Test audit command with various options."""
