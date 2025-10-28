@@ -42,6 +42,12 @@ from pwa_forge.commands.userscript import (
 from pwa_forge.commands.userscript import (
     generate_userscript as generate_userscript_impl,
 )
+from pwa_forge.commands.userscript import (
+    install_userscript as install_userscript_impl,
+)
+from pwa_forge.commands.userscript import (
+    setup_userscript as setup_userscript_impl,
+)
 from pwa_forge.config import load_config
 from pwa_forge.utils.logger import setup_logging
 
@@ -943,6 +949,149 @@ def generate_userscript(
 
         if dry_run:
             click.echo("\n[DRY-RUN] No changes were made.")
+
+    except UserscriptCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@cli.command()
+@click.argument("app_id")
+@click.option("--scheme", help="URL scheme used in the userscript (default: from config)")
+@click.option("--userscript", type=click.Path(exists=True), help="Path to userscript file")
+@click.option("--dry-run", is_flag=True, help="Show what would be created")
+@click.pass_context
+def install_userscript(
+    ctx: click.Context,
+    app_id: str,
+    scheme: str | None,
+    userscript: str | None,
+    dry_run: bool,
+) -> None:
+    """Install a userscript into a PWA's Chrome profile.
+
+    Automatically injects the generated userscript into the specified PWA's
+    Chrome profile directory. This allows Violentmonkey or Tampermonkey to
+    recognize and load the script without manual dashboard installation.
+
+    The userscript will be installed to:
+        <profile>/Default/pwa_forge_scripts/external-links.user.js
+
+    Note: The PWA must have Violentmonkey or Tampermonkey extension installed
+    for the userscript to work.
+
+    Example:
+        pwa-forge install-userscript my-app --scheme ff
+        pwa-forge install-userscript my-app --userscript /path/to/script.user.js
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = install_userscript_impl(
+            app_id=app_id,
+            config=config,
+            scheme=scheme,
+            userscript_path=userscript,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Userscript installed successfully!", fg="green")
+        else:
+            click.echo("✓ Userscript installed successfully!")
+
+        click.echo(f"  App ID: {result['app_id']}")
+        click.echo(f"  Profile: {result['profile_path']}")
+        click.echo(f"  Installed to: {result['installed_path']}")
+        click.echo(f"  Scheme: {result['scheme']}://")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+        else:
+            click.echo("\nNext steps:")
+            click.echo("1. Make sure Violentmonkey/Tampermonkey is installed in your PWA")
+            click.echo("2. Restart your PWA to load the userscript")
+            click.echo("3. Install the URL scheme handler:")
+            click.echo(f"   pwa-forge generate-handler --scheme {result['scheme']}")
+            click.echo(f"   pwa-forge install-handler --scheme {result['scheme']}")
+
+    except UserscriptCommandError as e:
+        if not ctx.obj.get("no_color"):
+            click.secho(f"✗ Error: {e}", fg="red", err=True)
+        else:
+            click.echo(f"✗ Error: {e}", err=True)
+        ctx.exit(1)
+
+
+@cli.command()
+@click.argument("app_id")
+@click.option("--scheme", help="URL scheme to redirect to (default: from config)")
+@click.option("--in-scope-hosts", help="Comma-separated list of hosts to keep in-app")
+@click.option("--url-pattern", default="*://*/*", help="URL pattern to match")
+@click.option("--dry-run", is_flag=True, help="Show what would be created")
+@click.pass_context
+def setup_userscript(
+    ctx: click.Context,
+    app_id: str,
+    scheme: str | None,
+    in_scope_hosts: str | None,
+    url_pattern: str,
+    dry_run: bool,
+) -> None:
+    """Complete setup: generate userscript, install extension, and inject script.
+
+    This is a one-command solution that automatically:
+    1. Generates the userscript for external link interception
+    2. Installs Violentmonkey extension to the PWA profile
+    3. Injects the userscript into the extension
+
+    After running this command, your PWA will automatically:
+    - Intercept external links
+    - Redirect them to your configured URL scheme
+    - Open them in your system browser
+
+    Example:
+        pwa-forge setup-userscript my-app --scheme ff --in-scope-hosts "google.com,api.google.com"
+    """
+    config = ctx.obj["config"]
+
+    try:
+        result = setup_userscript_impl(
+            app_id=app_id,
+            config=config,
+            scheme=scheme,
+            in_scope_hosts=in_scope_hosts,
+            url_pattern=url_pattern,
+            dry_run=dry_run,
+        )
+
+        if not ctx.obj.get("no_color"):
+            click.secho("✓ Userscript setup completed!", fg="green")
+        else:
+            click.echo("✓ Userscript setup completed!")
+
+        click.echo(f"\n  App ID: {result['app_id']}")
+        click.echo(f"  Scheme: {result['scheme']}://")
+        click.echo(f"  Userscript: {result['userscript_path']}")
+        click.echo(f"  Installed to: {result['installed_path']}")
+
+        if result["extension_installed"]:
+            click.echo("  Extension: ✓ Installed")
+        else:
+            click.echo("  Extension: ⚠ Not installed (manual installation may be needed)")
+
+        if dry_run:
+            click.echo("\n[DRY-RUN] No changes were made.")
+        else:
+            click.echo("\nNext steps:")
+            click.echo("1. Restart your PWA to load the extension and userscript")
+            click.echo("2. Install the URL scheme handler:")
+            click.echo(f"   pwa-forge generate-handler --scheme {result['scheme']}")
+            click.echo(f"   pwa-forge install-handler --scheme {result['scheme']}")
+            click.echo("3. Test by clicking an external link in your PWA")
 
     except UserscriptCommandError as e:
         if not ctx.obj.get("no_color"):
